@@ -1,0 +1,41 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "evide-ai-2b3d2",
+          "appId": "1:1019590537708:android:add3fbc57533137839d0c9",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "evide-ai-2b3d2",
+          "configurations": {
+            "android": "1:1019590537708:android:add3fbc57533137839d0c9",
+            "ios": "1:1019590537708:ios:1988581139a079b839d0c9",
+            "macos": "1:1019590537708:ios:1988581139a079b839d0c9",
+            "web": "1:1019590537708:web:3b71774c5ec25e9539d0c9",
+            "windows": "1:1019590537708:web:b2e09e41427ea2aa39d0c9"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}
