@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class PlaylistPlayer extends StatefulWidget {
   final List<PlaylistItem> items;
