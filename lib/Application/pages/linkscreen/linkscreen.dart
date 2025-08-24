@@ -30,13 +30,27 @@ class _HomescreenState extends State<Homescreen> {
   late TextEditingController _pairingCode;
   final _formKey = GlobalKey<FormState>();
   static const MethodChannel _kioskChannel = MethodChannel('com.example.evide_dashboard/kiosk');
-  int _adminTapCount = 0;
-  DateTime? _lastTapAt;
+  final FocusNode _focusNode = FocusNode();
+  final List<LogicalKeyboardKey> _adminBuffer = <LogicalKeyboardKey>[];
+  static final List<LogicalKeyboardKey> _adminSecret = <LogicalKeyboardKey>[
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowDown,
+    LogicalKeyboardKey.arrowDown,
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+    LogicalKeyboardKey.select,
+  ];
 
   @override
   void initState() {
     super.initState();
     _pairingCode = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
   }
 
   @override
@@ -77,15 +91,30 @@ class _HomescreenState extends State<Homescreen> {
           }
 
           return RawKeyboardListener(
-            focusNode: FocusNode()..requestFocus(),
+            focusNode: _focusNode,
             onKey: (event) {
-              if (event is RawKeyDownEvent) {
-                // Map DPAD center/enter to submit
-                final logical = event.logicalKey;
-                if (logical == LogicalKeyboardKey.select ||
-                    logical == LogicalKeyboardKey.enter ||
-                    logical == LogicalKeyboardKey.numpadEnter) {
-                  _submitPairing();
+              if (event is! RawKeyDownEvent) return;
+              LogicalKeyboardKey key = event.logicalKey;
+              if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+                key = LogicalKeyboardKey.select;
+              }
+              // Submit on select regardless of focus
+              if (key == LogicalKeyboardKey.select) {
+                _submitPairing();
+              }
+              // Track only D-Pad + select for admin secret
+              if (key == LogicalKeyboardKey.arrowUp ||
+                  key == LogicalKeyboardKey.arrowDown ||
+                  key == LogicalKeyboardKey.arrowLeft ||
+                  key == LogicalKeyboardKey.arrowRight ||
+                  key == LogicalKeyboardKey.select) {
+                _adminBuffer.add(key);
+                if (_adminBuffer.length > _adminSecret.length) {
+                  _adminBuffer.removeAt(0);
+                }
+                if (_matchesAdminSecret()) {
+                  _showAdminOptions();
+                  _adminBuffer.clear();
                 }
               }
             },
@@ -97,9 +126,7 @@ class _HomescreenState extends State<Homescreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(38.0),
-                  child: GestureDetector(
-                    onTap: _handleAdminTap,
-                    child: CustomTextformWidget(
+                  child: CustomTextformWidget(
                     controller: _pairingCode,
                     hinttext: 'Enter the Pairing Code',
                     labelText: 'Pairing Code',
@@ -114,7 +141,6 @@ class _HomescreenState extends State<Homescreen> {
                       }
                       return null; // valid
                     },
-                  ),
                   ),
                 ),
                 Gap(10),
@@ -148,43 +174,42 @@ class _HomescreenState extends State<Homescreen> {
     }
   }
 
-  void _handleAdminTap() async {
-    final now = DateTime.now();
-    if (_lastTapAt == null || now.difference(_lastTapAt!) > const Duration(seconds: 3)) {
-      _adminTapCount = 0;
+  bool _matchesAdminSecret() {
+    if (_adminBuffer.length != _adminSecret.length) return false;
+    for (int i = 0; i < _adminSecret.length; i++) {
+      if (_adminBuffer[i] != _adminSecret[i]) return false;
     }
-    _lastTapAt = now;
-    _adminTapCount++;
-    if (_adminTapCount >= 7) {
-      _adminTapCount = 0;
-      final action = await showDialog<String>(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            title: const Text('Admin Options'),
-            content: const Text('Open Settings or Uninstall the app?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, 'settings'),
-                child: const Text('Settings'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, 'uninstall'),
-                child: const Text('Uninstall'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, null),
-                child: const Text('Cancel'),
-              ),
-            ],
-          );
-        },
-      );
-      if (action == 'settings') {
-        try { await _kioskChannel.invokeMethod('openAppSettings'); } catch (_) {}
-      } else if (action == 'uninstall') {
-        try { await _kioskChannel.invokeMethod('uninstallSelf'); } catch (_) {}
-      }
+    return true;
+  }
+
+  Future<void> _showAdminOptions() async {
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Admin Options'),
+          content: const Text('Open Settings or Uninstall the app?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'settings'),
+              child: const Text('Settings'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'uninstall'),
+              child: const Text('Uninstall'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+    if (action == 'settings') {
+      try { await _kioskChannel.invokeMethod('openAppSettings'); } catch (_) {}
+    } else if (action == 'uninstall') {
+      try { await _kioskChannel.invokeMethod('uninstallSelf'); } catch (_) {}
     }
   }
 }
