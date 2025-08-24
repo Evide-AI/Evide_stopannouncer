@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'firebase_options.dart';
 
+const MethodChannel _kioskChannel = MethodChannel('com.example.evide_dashboard/kiosk');
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 _getLiveLocation();
@@ -15,6 +17,12 @@ _getLiveLocation();
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
+  // Enable immersive sticky to hide system UI on TV
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  // Attempt to start lock task (kiosk) at launch
+  try {
+    await _kioskChannel.invokeMethod('startLockTask');
+  } catch (_) {}
     // Initialize the service here
  // Start periodic fetching
 

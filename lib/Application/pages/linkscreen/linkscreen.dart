@@ -3,6 +3,7 @@ import 'package:evide_dashboard/Application/pages/linkscreen/bloc/linkscreen_blo
 import 'package:evide_dashboard/Application/widgets/custom_Textfield_widget.dart';
 import 'package:evide_dashboard/Application/widgets/custom_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 
@@ -28,16 +29,35 @@ class Homescreen extends StatefulWidget {
 class _HomescreenState extends State<Homescreen> {
   late TextEditingController _pairingCode;
   final _formKey = GlobalKey<FormState>();
+  static const MethodChannel _kioskChannel = MethodChannel('com.example.evide_dashboard/kiosk');
+  final FocusNode _focusNode = FocusNode();
+  final List<LogicalKeyboardKey> _adminBuffer = <LogicalKeyboardKey>[];
+  static final List<LogicalKeyboardKey> _adminSecret = <LogicalKeyboardKey>[
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowDown,
+    LogicalKeyboardKey.arrowDown,
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+    LogicalKeyboardKey.select,
+  ];
 
   @override
   void initState() {
     super.initState();
     _pairingCode = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
       body: BlocConsumer<LinkscreenBloc, LinkscreenState>(
         listener: (context, state) {
           if (state is LinkingSuccess) {
@@ -70,7 +90,35 @@ class _HomescreenState extends State<Homescreen> {
             );
           }
 
-          return Form(
+          return RawKeyboardListener(
+            focusNode: _focusNode,
+            onKey: (event) {
+              if (event is! RawKeyDownEvent) return;
+              LogicalKeyboardKey key = event.logicalKey;
+              if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+                key = LogicalKeyboardKey.select;
+              }
+              // Submit on select regardless of focus
+              if (key == LogicalKeyboardKey.select) {
+                _submitPairing();
+              }
+              // Track only D-Pad + select for admin secret
+              if (key == LogicalKeyboardKey.arrowUp ||
+                  key == LogicalKeyboardKey.arrowDown ||
+                  key == LogicalKeyboardKey.arrowLeft ||
+                  key == LogicalKeyboardKey.arrowRight ||
+                  key == LogicalKeyboardKey.select) {
+                _adminBuffer.add(key);
+                if (_adminBuffer.length > _adminSecret.length) {
+                  _adminBuffer.removeAt(0);
+                }
+                if (_matchesAdminSecret()) {
+                  _showAdminOptions();
+                  _adminBuffer.clear();
+                }
+              }
+            },
+            child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -97,15 +145,7 @@ class _HomescreenState extends State<Homescreen> {
                 ),
                 Gap(10),
                 CustomButton(
-                  onTap: () {
-                    final pairingCode = _pairingCode.text.trim();
-                    context.read<LinkscreenBloc>().add(
-                      CheckPairingCode(pairingCode: pairingCode),
-                    );
-                    print(
-                      'the pairing code is sharing to bloc......${pairingCode}',
-                    );
-                  },
+                  onTap: _submitPairing,
                   text: 'Pair Screen',
                   boxDecoration: BoxDecoration(
                     color: Colors.amber,
@@ -117,9 +157,59 @@ class _HomescreenState extends State<Homescreen> {
                 ),
               ],
             ),
+            ),
           );
         },
       ),
+    ),
     );
+  }
+
+  void _submitPairing() {
+    final pairingCode = _pairingCode.text.trim();
+    if (_formKey.currentState?.validate() ?? false) {
+      context.read<LinkscreenBloc>().add(
+            CheckPairingCode(pairingCode: pairingCode),
+          );
+    }
+  }
+
+  bool _matchesAdminSecret() {
+    if (_adminBuffer.length != _adminSecret.length) return false;
+    for (int i = 0; i < _adminSecret.length; i++) {
+      if (_adminBuffer[i] != _adminSecret[i]) return false;
+    }
+    return true;
+  }
+
+  Future<void> _showAdminOptions() async {
+    final action = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Admin Options'),
+          content: const Text('Open Settings or Uninstall the app?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'settings'),
+              child: const Text('Settings'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'uninstall'),
+              child: const Text('Uninstall'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+    if (action == 'settings') {
+      try { await _kioskChannel.invokeMethod('openAppSettings'); } catch (_) {}
+    } else if (action == 'uninstall') {
+      try { await _kioskChannel.invokeMethod('uninstallSelf'); } catch (_) {}
+    }
   }
 }

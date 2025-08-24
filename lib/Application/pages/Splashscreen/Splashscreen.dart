@@ -39,7 +39,9 @@ class _SplashscreenState extends State<Splashscreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
       backgroundColor: backgroundColor,
       body: BlocConsumer<SplashscreenBloc, SplashscreenState>(
         listener: (context, state) async {
@@ -74,6 +76,7 @@ class _SplashscreenState extends State<Splashscreen> {
           );
         },
       ),
+    ),
     );
   }
 }
