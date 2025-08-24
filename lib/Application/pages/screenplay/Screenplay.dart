@@ -8,6 +8,7 @@ import 'package:evide_dashboard/Infrastructure/service/Syncservice.dart';
 import 'package:evide_dashboard/Application/pages/screenplay/widget/playlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'package:flutter/services.dart';
 
 class Screenplay extends StatefulWidget {
   const Screenplay({super.key});
@@ -19,6 +20,7 @@ class Screenplay extends StatefulWidget {
 class _ScreenplayState extends State<Screenplay> {
   late StopAnnouncerService stopAnnouncer;
   final ValueNotifier<String?> _currentStop = ValueNotifier(null);
+  final bool _inputsBlocked = true;
 
   @override
   void initState() {
@@ -135,248 +137,254 @@ class _ScreenplayState extends State<Screenplay> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: SharedPreferences.getInstance(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  "Initializing...",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: FutureBuilder(
+        future: SharedPreferences.getInstance(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                   ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        final prefs = snapshot.data!;
-        final pairingCode = prefs.getString("pairingCode") ?? "";
-
-        final syncService = SyncService(
-          pairingCode,
-          FirebaseFirestore.instance,
-          FirebaseStorage.instance,
-        );
-
-        return BlocProvider(
-          create: (_) => ScreenplayBloc(syncService)..add(LoadContents()),
-          child: Scaffold(
-            body: BlocBuilder<ScreenplayBloc, ScreenplayState>(
-              builder: (context, state) {
-                if (state is ContentsLoading) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.blue,
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          "Loading your content...",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  SizedBox(height: 16),
+                  Text(
+                    "Initializing...",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500,
                     ),
-                  );
-                } else if (state is ContentsFailed) {
-                  return Center(
-                    child: Container(
-                      margin: const EdgeInsets.all(24),
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final prefs = snapshot.data!;
+          final pairingCode = prefs.getString("pairingCode") ?? "";
+
+          final syncService = SyncService(
+            pairingCode,
+            FirebaseFirestore.instance,
+            FirebaseStorage.instance,
+          );
+
+          return BlocProvider(
+            create: (_) => ScreenplayBloc(syncService)..add(LoadContents()),
+            child: Scaffold(
+              body: BlocBuilder<ScreenplayBloc, ScreenplayState>(
+                builder: (context, state) {
+                  if (state is ContentsLoading) {
+                    return const Center(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Colors.red.shade400,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            "Something went wrong",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
+                          CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.blue,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 16),
                           Text(
-                            state.message,
-                            textAlign: TextAlign.center,
+                            "Loading your content...",
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.red.shade600,
+                              fontSize: 16,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                } else if (state is ContentsLoaded) {
-                  final items = <PlaylistItem>[];
-
-                  final contents = List<Map<String, dynamic>>.from(
-                    state.documentData["Contents"] ?? [],
-                  );
-
-                  for (int i = 0; i < contents.length; i++) {
-                    final contentKey = "content_$i";
-                    if (state.localFiles.containsKey(contentKey)) {
-                      final localPath = state.localFiles[contentKey]!;
-                      final content = contents[i];
-
-                      String fileType = _getFileType(localPath, content);
-                      String? originalUrl = content['url'] as String?;
-
-                      items.add(
-                        PlaylistItem(
-                          type: fileType,
-                          path: localPath,
-                          url: originalUrl,
-                        ),
-                      );
-                    }
-                  }
-
-                  if (items.isEmpty) {
+                    );
+                  } else if (state is ContentsFailed) {
                     return Center(
                       child: Container(
                         margin: const EdgeInsets.all(24),
-                        padding: const EdgeInsets.all(32),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.amber.shade200,
-                            width: 2,
-                          ),
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.red.shade200),
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.playlist_remove,
-                              size: 64,
-                              color: Colors.amber.shade600,
+                              Icons.error_outline,
+                              size: 48,
+                              color: Colors.red.shade400,
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              "No Media Found",
+                              "Something went wrong",
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.amber.shade800,
+                                color: Colors.red.shade700,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Check your content library and try again",
+                              state.message,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.amber.shade700,
+                                fontSize: 14,
+                                color: Colors.red.shade600,
                               ),
                             ),
                           ],
                         ),
                       ),
                     );
+                  } else if (state is ContentsLoaded) {
+                    final items = <PlaylistItem>[];
+
+                    final contents = List<Map<String, dynamic>>.from(
+                      state.documentData["Contents"] ?? [],
+                    );
+
+                    for (int i = 0; i < contents.length; i++) {
+                      final contentKey = "content_$i";
+                      if (state.localFiles.containsKey(contentKey)) {
+                        final localPath = state.localFiles[contentKey]!;
+                        final content = contents[i];
+
+                        String fileType = _getFileType(localPath, content);
+                        String? originalUrl = content['url'] as String?;
+
+                        items.add(
+                          PlaylistItem(
+                            type: fileType,
+                            path: localPath,
+                            url: originalUrl,
+                          ),
+                        );
+                      }
+                    }
+
+                    if (items.isEmpty) {
+                      return Center(
+                        child: Container(
+                          margin: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.amber.shade200,
+                              width: 2,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.playlist_remove,
+                                size: 64,
+                                color: Colors.amber.shade600,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                "No Media Found",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber.shade800,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Check your content library and try again",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.amber.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // ✅ Use Stack instead of Overlay to avoid video interference and block interactions in kiosk mode
+                    return AbsorbPointer(
+                      absorbing: _inputsBlocked,
+                      child: Stack(
+                        children: [
+                          // Video player stays at the bottom layer
+                          PlaylistPlayer(items: items),
+                          // Banner overlay that doesn't interfere with video
+                          ValueListenableBuilder<String?>(
+                            valueListenable: _currentStop,
+                            builder: (context, stopName, child) {
+                              return AnimatedOpacity(
+                                opacity: stopName != null ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeInOut,
+                                child: stopName != null
+                                    ? Container(
+                                        color: Colors.black.withOpacity(0.3),
+                                        child: Center(
+                                          child: AnimatedScale(
+                                            scale: stopName != null ? 1.0 : 0.8,
+                                            duration: const Duration(
+                                              milliseconds: 300,
+                                            ),
+                                            curve: Curves.easeOutBack,
+                                            child: _buildStopBanner(stopName),
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    );
                   }
 
-                  // ✅ Use Stack instead of Overlay to avoid video interference
-                  return Stack(
-                    children: [
-                      // Video player stays at the bottom layer
-                      PlaylistPlayer(items: items),
-                      // Banner overlay that doesn't interfere with video
-                      ValueListenableBuilder<String?>(
-                        valueListenable: _currentStop,
-                        builder: (context, stopName, child) {
-                          return AnimatedOpacity(
-                            opacity: stopName != null ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOut,
-                            child: stopName != null
-                                ? Container(
-                                    color: Colors.black.withOpacity(0.3),
-                                    child: Center(
-                                      child: AnimatedScale(
-                                        scale: stopName != null ? 1.0 : 0.8,
-                                        duration: const Duration(
-                                          milliseconds: 300,
-                                        ),
-                                        curve: Curves.easeOutBack,
-                                        child: _buildStopBanner(stopName),
-                                      ),
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          );
-                        },
-                      ),
-                    ],
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.hourglass_empty,
+                            size: 32,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Getting things ready...",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   );
-                }
-
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.hourglass_empty,
-                          size: 32,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Getting things ready...",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                },
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
