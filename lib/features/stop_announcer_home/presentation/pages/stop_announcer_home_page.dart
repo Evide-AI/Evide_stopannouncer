@@ -1,9 +1,6 @@
-import 'dart:math';
-
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
-import 'package:evide_stop_announcer_app/core/components/common_text_form_field_widget.dart';
-import 'package:evide_stop_announcer_app/core/constants/app_common_styles.dart';
 import 'package:evide_stop_announcer_app/features/stop_announcer_home/presentation/widgets/home_top_part_intro_widgets.dart';
+import 'package:evide_stop_announcer_app/features/stop_announcer_home/presentation/widgets/pairing_code_showing_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class StopAnnouncerHomePage extends StatefulWidget {
@@ -14,13 +11,15 @@ class StopAnnouncerHomePage extends StatefulWidget {
 }
 
 class _StopAnnouncerHomePageState extends State<StopAnnouncerHomePage> {
-  TextEditingController secretCodeController = TextEditingController();
+  late String secretCodeForConnection;
 
   @override
-  void dispose() {
-    secretCodeController.dispose();
-    super.dispose();
+  void initState() {
+    // generate a random secret code
+    secretCodeForConnection = AppCommonMethods.generateSecretCode();
+    super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,56 +36,21 @@ class _StopAnnouncerHomePageState extends State<StopAnnouncerHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // home top intro part
-             ...homeTopPartIntroWidgets(),
-             AppConstraints.kHeight40,
-             Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10.sp),
-                color: AppColors.kAppLightPrimaryColor,
+              ...homeTopPartIntroWidgets(),
+              AppConstraints.kHeight40,
+              Text(
+                "Pairing Code",
+                style: AppCommonStyles.commonTextStyle(
+                  color: AppColors.kBlack,
+                  fontSize: 23.sp,
+                  fontFamily: AppAssets.robotoSemiBoldFont,
+                  letterSpacing: 0.8,
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                  "${Random().nextInt(10000000)}",
-                  style: AppCommonStyles.commonTextStyle(
-                    color: AppColors.kBlack,
-                    fontSize: 18.sp,
-                    fontFamily: AppAssets.robotoMediumFont,
-                    letterSpacing: 0.8,
-                  ),
-                  ),
-                  AppConstraints.kWidth10,
-                   GestureDetector(
-                    onTap: () {
-                      
-                    },
-                    child: Icon(Icons.copy),
-                  ),
-                ],
+              AppConstraints.kHeight12,
+              PairingCodeShowingWidget(
+                secretCodeForConnection: secretCodeForConnection,
               ),
-             ),
-             AppConstraints.kHeight10,
-             Text(
-              "Enter the code above",
-              style: AppCommonStyles.commonTextStyle(
-                color: AppColors.kBlack,
-                fontSize: 18.sp,
-                fontFamily: AppAssets.robotoMediumFont,
-                letterSpacing: 0.8,
-              ),
-            ),
-             AppConstraints.kHeight20,
-             CommonTextFormFieldWidget(
-              enabled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15.sp),
-                borderSide: BorderSide(color: AppColors.kAppPrimaryColor),
-              ),
-              controller: secretCodeController,
-              hintText: "Enter connection code",
-             ),
             ],
           ),
         ),
@@ -94,5 +58,3 @@ class _StopAnnouncerHomePageState extends State<StopAnnouncerHomePage> {
     );
   }
 }
-
-
