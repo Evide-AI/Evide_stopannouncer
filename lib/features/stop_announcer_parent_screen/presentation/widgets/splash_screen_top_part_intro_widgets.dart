@@ -1,14 +1,15 @@
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-List<Widget> homeTopPartIntroWidgets() {
+List<Widget> splashScreenTopPartIntroWidgets() {
   return [
     // Welcome Text
     Text(
-      "Welcome to\nEvide",
+      "Welcome to Evide",
+      maxLines: 2,
       style: AppCommonStyles.commonTextStyle(
         color: AppColors.kAppPrimaryColor,
-        fontSize: 48.sp,
+        fontSize: 20.sp,
         fontFamily: AppAssets.robotoBoldFont,
         letterSpacing: 1.2,
         shadows: [
@@ -22,22 +23,9 @@ List<Widget> homeTopPartIntroWidgets() {
       "Your travel companion",
       style: AppCommonStyles.commonTextStyle(
         color: AppColors.kLightGrey,
-        fontSize: 28.sp,
+        fontSize: 10.sp,
         fontFamily: AppAssets.robotoSemiBoldFont,
         letterSpacing: 0.8,
-      ),
-    ),
-    AppConstraints.kHeight16,
-    Container(
-      width: 80.w,
-      height: 4.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.kAppPrimaryColor, AppColors.kAppLightPrimaryColor],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(2.h),
       ),
     ),
   ];
