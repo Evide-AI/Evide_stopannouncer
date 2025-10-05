@@ -6,4 +6,7 @@ class AppAssets {
   static const String robotoMediumFont = 'Roboto-Medium';
   static const String robotoSemiBoldFont = 'Roboto-SemiBold';
   static const String robotoBoldFont = 'Roboto-Bold';
+
+  // images
+  static const String pngApplogo = "assets/images/logo.png";
 }

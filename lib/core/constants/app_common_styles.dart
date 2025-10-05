@@ -11,6 +11,7 @@ class AppCommonStyles {
     double? height,
     TextDecoration? decoration,
     TextOverflow? overflow,
+    List<Shadow>? shadows,
   }) {
     return TextStyle(
       color: color ?? AppColors.kBlack,
@@ -21,6 +22,7 @@ class AppCommonStyles {
       decoration: decoration,
       overflow: overflow,
       height: height,
+      shadows: shadows,
     );
   }
 }
