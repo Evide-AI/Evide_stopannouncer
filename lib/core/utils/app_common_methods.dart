@@ -1,4 +1,6 @@
 import 'dart:math';
+
+import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 class AppCommonMethods {
   static final _rnd = Random.secure();
 
@@ -13,6 +15,11 @@ class AppCommonMethods {
     final uniqueCode = ((code + uniqueOffset) % 1000000).toString().padLeft(6, '0');
 
     return uniqueCode;
+  }
+
+  static Future<bool> checkIsPaired() async {
+    bool? isPaired = await SharedPrefsServices.getIsPaired();
+    return isPaired ?? false;
   }
 }
 
