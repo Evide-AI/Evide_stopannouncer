@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1019590537708",
+    "project_id": "evide-ai-2b3d2",
+    "storage_bucket": "evide-ai-2b3d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1019590537708:android:bc5fc063f69642f339d0c9",
+        "android_client_info": {
+          "package_name": "com.evide.evide_stop_announcer_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBURYxZ9OO2ashOf4vTUml44boDKSLM6fg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

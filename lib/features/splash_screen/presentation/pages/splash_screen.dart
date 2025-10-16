@@ -1,7 +1,8 @@
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
+import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/pages/ads_play_page.dart';
 import 'package:evide_stop_announcer_app/features/stop_announcer_parent_screen/presentation/pages/stop_announcer_parent_screen.dart';
-import 'package:evide_stop_announcer_app/features/stop_announcer_parent_screen/presentation/widgets/splash_screen_top_part_intro_widgets.dart';
+import 'package:evide_stop_announcer_app/features/splash_screen/presentation/widgets/splash_screen_top_part_intro_widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -16,9 +17,9 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     Future.delayed(Duration(seconds: 6), () {
       // if paired go to add videos list page or playing page
-      // AppGlobalKeys.navigatorKey.currentState?.pushAndRemoveUntil(MaterialPageRoute(builder: (context) {
-      //   return StopAnnouncerParentScreen();
-      // },), (route) => false,);
+      AppGlobalKeys.navigatorKey.currentState?.pushAndRemoveUntil(MaterialPageRoute(builder: (context) {
+        return AdsPlayPage();
+      },), (route) => false,);
     },);
     super.initState();
   }
