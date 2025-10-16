@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
-import 'package:evide_stop_announcer_app/features/ads_play_page/domain/entity/bus_data_entity.dart';
-import 'package:evide_stop_announcer_app/features/ads_play_page/domain/usecases/get_bus_doc_data_usecase.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_bus_doc_data_usecase.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'bus_data_state.dart';

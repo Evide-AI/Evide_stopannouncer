@@ -1,5 +1,5 @@
 import 'package:evide_stop_announcer_app/core/constants/db_constants.dart';
-import 'package:evide_stop_announcer_app/features/ads_play_page/domain/entity/bus_data_entity.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 
 class BusDataModel extends BusDataEntity{
   const BusDataModel({

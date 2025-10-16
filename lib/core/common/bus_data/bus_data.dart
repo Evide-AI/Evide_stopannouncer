@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:evide_stop_announcer_app/core/constants/db_constants.dart';
 import 'package:evide_stop_announcer_app/core/failure/failure.dart';
-import 'package:evide_stop_announcer_app/features/ads_play_page/data/model/bus_data_model.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data/model/bus_data_model.dart';
 import 'package:flutter/foundation.dart';
 
 abstract class BusData {

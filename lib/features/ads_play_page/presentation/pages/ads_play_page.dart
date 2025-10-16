@@ -1,4 +1,4 @@
-import 'package:evide_stop_announcer_app/core/common_blocs/bus_data_cubit/bus_data_cubit.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
