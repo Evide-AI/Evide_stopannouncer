@@ -2,10 +2,9 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
-import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
+import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lottie/lottie.dart';
 
 class AdsPlayPage extends StatefulWidget {
   const AdsPlayPage({super.key});
@@ -30,39 +29,6 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
     _betterPlayerController?.dispose();
     super.dispose();
   }
-
-  // Future<void> initializeVideo({required int index}) async {
-  //   if (_videoList.isEmpty) return;
-
-  //   final videoFile = File(_videoList[index]);
-
-  //   final dataSource = BetterPlayerDataSource(
-  //     BetterPlayerDataSourceType.file,
-  //     videoFile.path,
-  //     notificationConfiguration: const BetterPlayerNotificationConfiguration(
-  //       showNotification: false,
-  //     ),
-  //   );
-
-  //   _betterPlayerController?.dispose(); // Dispose previous controller
-
-  //   _betterPlayerController = BetterPlayerController(
-  //     BetterPlayerConfiguration(
-  //       autoPlay: true,
-  //       looping: false, // Do not loop single video
-  //       handleLifecycle: true,
-  //       allowedScreenSleep: false,
-  //       autoDispose: true,
-  //       eventListener: _onVideoEvent,
-  //       controlsConfiguration: const BetterPlayerControlsConfiguration(
-  //         showControls: false,
-  //       ),
-  //     ),
-  //     betterPlayerDataSource: dataSource,
-  //   );
-  //   _betterPlayerController?.setVolume(0.0);
-  //   setState(() {});
-  // }
 
   Future<void> initializeVideo({required int index}) async {
   if (_videoList.isEmpty) return;
@@ -103,7 +69,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
     _betterPlayerController?.setVolume(0.0);
     setState(() {});
   } catch (e) {
-    log("⚠️ Error initializing video: $e");
+    log("Error initializing video: $e");
     _skipToNextOnError();
   }
 }
@@ -120,7 +86,7 @@ void _skipToNextOnError() async {
   try {
     await initializeVideo(index: currentVideoIndex);
   } catch (e) {
-    log("⚠️ Failed to play next video: $e");
+    log("Failed to play next video: $e");
     // recursively skip until you find a valid playable one
     _skipToNextOnError();
   }
@@ -159,19 +125,11 @@ void _skipToNextOnError() async {
       },
       builder: (context, state) {
         if (state is BustDataLoadingState) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+          return adsPlayPageCommonLoadingWidget();
         }
 
         if (_betterPlayerController == null) {
-          return Scaffold(
-            body: Center(
-              child: Lottie.asset("assets/Artboard.json"),
-            ),
-          );
+          return adsPlayPageCommonLoadingWidget();
         }
 
         return Scaffold(
