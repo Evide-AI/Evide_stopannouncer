@@ -1,4 +1,5 @@
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CommonTextFormFieldWidget extends StatelessWidget {
   const CommonTextFormFieldWidget({
@@ -63,6 +64,9 @@ class CommonTextFormFieldWidget extends StatelessWidget {
         FocusManager.instance.primaryFocus?.unfocus();
       },
       onChanged: onChanged,
+      style: AppCommonStyles.commonTextStyle(
+        color: AppColors.kWhite, fontSize: 6.sp
+      ),
       keyboardType: keyboardType,
       controller: controller,
       cursorColor: cursorColor ?? AppColors.kBlack,

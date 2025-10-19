@@ -57,15 +57,15 @@ class _PairingCodeEnterPageState extends State<PairingCodeEnterPage> {
                         ),
                       ),
                       AppConstraints.kWidth8,
-                      Text(
-                        "Hint(Bus no)",
-                        style: AppCommonStyles.commonTextStyle(
-                          color: AppColors.kBlack,
-                          fontSize: 6.sp,
-                          fontFamily: AppAssets.robotoSemiBoldFont,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
+                      // Text(
+                      //   "Hint(Bus no)",
+                      //   style: AppCommonStyles.commonTextStyle(
+                      //     color: AppColors.kBlack,
+                      //     fontSize: 6.sp,
+                      //     fontFamily: AppAssets.robotoSemiBoldFont,
+                      //     letterSpacing: 0.8,
+                      //   ),
+                      // ),
                     ],
                   ),
                   AppConstraints.kHeight12,
@@ -101,14 +101,18 @@ class _PairingCodeEnterPageState extends State<PairingCodeEnterPage> {
                             .trim(),
                       );
                     },
-                    child: Text(
-                      "Connect",
-                      style: AppCommonStyles.commonTextStyle(
-                        color: AppColors.kBlack,
-                        fontSize: 6.sp,
-                        fontFamily: AppAssets.robotoSemiBoldFont,
-                        letterSpacing: 0.8,
-                      ),
+                    child: BlocBuilder<BusDataCubit, BusDataState>(
+                      builder: (context, state) {
+                        return Text(
+                        (state is BustDataLoadingState) ? "Connecting..." : "Connect",
+                          style: AppCommonStyles.commonTextStyle(
+                            color: AppColors.kBlack,
+                            fontSize: 6.sp,
+                            fontFamily: AppAssets.robotoSemiBoldFont,
+                            letterSpacing: 0.8,
+                          ),
+                        );
+                      }
                     ),
                   ),
                 ],

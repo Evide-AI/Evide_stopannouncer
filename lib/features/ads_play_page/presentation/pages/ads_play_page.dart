@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
+import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -113,17 +114,24 @@ void _skipToNextOnError() async {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<BusDataCubit, BusDataState>(
-      listener: (context, state) async {
-        if (state is BusDataLoadedState) {
-          if (state.busData.adVideos?.isNotEmpty ?? false) {
-            _videoList = state.localVideoPaths; // Store all video paths
-            currentVideoIndex = 0;
-            await initializeVideo(index: currentVideoIndex);
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
+          if (state is BusDataLoadedState) {
+            if (state.busData.adVideos?.isNotEmpty ?? false) {
+              _videoList = state.localVideoPaths; // Store all video paths
+              currentVideoIndex = 0;
+              await initializeVideo(index: currentVideoIndex);
+            }
           }
-        }
-      },
-      builder: (context, state) {
+
+          if (mounted) {
+            currentStopDataShowingDialog(context, stopName: "Muzhipillangadi");
+          }
+        },),
+        // a listener for showing current stop data dialog when new stop data is available
+      ],
+      child: BlocBuilder<BusDataCubit, BusDataState>(builder: (context, state) {
         if (state is BustDataLoadingState) {
           return adsPlayPageCommonLoadingWidget();
         }
@@ -140,7 +148,7 @@ void _skipToNextOnError() async {
             ),
           ),
         );
-      },
+      },),
     );
   }
 }
