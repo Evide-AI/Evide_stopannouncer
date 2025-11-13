@@ -1,6 +1,7 @@
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
 import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
+import 'package:evide_stop_announcer_app/core/network_connection/network_connection_wrapper.dart';
 import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 import 'package:evide_stop_announcer_app/features/splash_screen/presentation/pages/splash_screen.dart';
@@ -27,7 +28,7 @@ class RootWidgetPage extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: ThemeData.light(useMaterial3: true),
             navigatorKey: AppGlobalKeys.navigatorKey,
-            home: (SharedPrefsServices.getIsPaired() ?? false) ? SplashScreen() : PairingCodeEnterPage(),
+            home: NetworkConnectionWrapper(child: (SharedPrefsServices.getIsPaired() ?? false) ? SplashScreen() : PairingCodeEnterPage()),
           ),
         );
       },

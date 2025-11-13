@@ -7,5 +7,5 @@ class DbConstants {
   static const String busName = 'bus_name';
   static const String busNumberPlate = 'bus_no_plate';
   static const String adVideos = 'ad_videos';
-  static const String stopAudios = 'Stop_audio';
+  static const String stopAudios = 'stop_audio';
 }

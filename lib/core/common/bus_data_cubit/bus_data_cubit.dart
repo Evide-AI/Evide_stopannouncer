@@ -50,15 +50,17 @@ class BusDataCubit extends Cubit<BusDataState> {
     }
   }
 
-  Future<void> getAllTrips({required int busId, required Socket socket}) async {
+  Future<void> getActiveTrip({required int busId, required Socket socket}) async {
     try {
       // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
       final res = await getActiveTripDataUsecase(params: busId);
       res.fold((failure) {
         debugPrint("Error fetching active trip data: ${failure.message}");
-      }, (activeTripData) async {
-        if (activeTripData != null) {
-          WebSocketServices.connectSocket(tripId: activeTripData.tripId, socket: socket);
+      }, (activeTripTimelineData) async {
+        if (activeTripTimelineData != null) {
+          if(state is BusDataLoadedState) {
+            WebSocketServices.connectSocket(activeTripTimelineData: activeTripTimelineData, socket: socket, stopAudios: (state as BusDataLoadedState).busData.stopAudios ?? {});
+          }
         } else {
           debugPrint("No active trip data found");
         }

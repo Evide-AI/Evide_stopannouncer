@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data/model/timeline_model.dart';
 import 'package:evide_stop_announcer_app/core/constants/db_constants.dart';
 import 'package:evide_stop_announcer_app/core/failure/failure.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data/model/bus_data_model.dart';
@@ -11,7 +12,7 @@ import 'package:evide_stop_announcer_app/core/services/api_reponse.dart';
 
 abstract class BusData {
   Future<BusDataModel?> getBusDocData({required String busPairingCode});
-  Future<ActiveTripDataModel> getActiveTripData({required int busId});
+  Future<TimeLineModel> getActiveTripData({required int busId});
 }
 
 class BusDataImpl implements BusData {
@@ -19,6 +20,7 @@ class BusDataImpl implements BusData {
   final Dio dio;
 
   BusDataImpl({required this.firebaseFirestore, required this.dio});
+  // method to get bus document data by pairing code
   @override
   Future<BusDataModel?> getBusDocData({required String busPairingCode}) async {
     try {
@@ -36,6 +38,7 @@ class BusDataImpl implements BusData {
     }
   }
 
+  // method to get all trips by bus id
   Future<List<ActiveTripDataModel>> getAllTripsByBusId({required int busId, int pageNo = 1}) async {
     try {
       final response = await dio.get("${BackendConstants.baseUrl}${ApiEndpoint.getTripsByBusId(busId: busId, pageNo: pageNo)}");
@@ -55,13 +58,37 @@ class BusDataImpl implements BusData {
   }
   
   @override
-  Future<ActiveTripDataModel> getActiveTripData({required int busId}) async {
+  Future<TimeLineModel> getActiveTripData({required int busId}) async {
     try {
+      // get all trips by bus id
       final allTrips = await getAllTripsByBusId(busId: busId);
+      // if all trips is not empty, filter active trips
       if(allTrips.isNotEmpty){
         final activeTrips = allTrips.where((trip) => trip.isTripActive == true).toList();
         if(activeTrips.isNotEmpty){
-          return activeTrips.first;
+          final activeTrip = activeTrips.first;
+          // if active trip found, get timeline data
+          if (activeTrip.tripId != null) {
+            final timelineResponse = await dio.get("${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
+            final apiResponse = ApiResponse.fromJson(
+              json: timelineResponse.data,
+              fromDataJson: (data) {
+                return TimeLineModel.fromJson(data);
+              },
+            );
+            // return timeline data if success
+            if(apiResponse.success){
+              if (apiResponse.data != null) {
+                return apiResponse.data!;
+              } else {
+                throw Failure(message: "No timeline data found");
+              }
+            }else {
+              throw Failure(message: apiResponse.message ?? "Unable to fetch timeline data");
+            }
+          } else {
+            throw Failure(message: "Invalid Trip ID");
+          }
         }else {
           throw Failure(message: "No Active Trips Found");
         }

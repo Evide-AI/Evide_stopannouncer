@@ -1,23 +1,29 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:evide_stop_announcer_app/core/app_imports.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
 import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
+import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
-int? lastStopSequenceNumber;
 class WebSocketServices {
   /// ✅ Connect to backend socket
   static void connectSocket({
-    required int? tripId,
+    required TimeLineEntity activeTripTimelineData,
     required io.Socket socket,
+    required Map<String, dynamic> stopAudios,
   }) {
+    AudioPlayer audioPlayer = AudioPlayer();
     socket.onConnect((_) {
       log('🟢 Connected to socket with ID: ${socket.id}');
-      if (tripId != null) {
-        socket.emit('join-trip', {'tripId': tripId});
+      if (activeTripTimelineData.tripDetails?.id != null) {
+        socket.emit('join-trip', {'tripId': activeTripTimelineData.tripDetails?.id});
       }
     });
 
-    socket.onDisconnect((reason) => log('🔴 Disconnected: $reason'));
+    socket.onDisconnect((reason) {
+      log('🔴 Disconnected: $reason');
+      audioPlayer.dispose();
+    });
     socket.onError((data) => log('🚨 Socket Error: $data'));
     socket.onConnectError((data) => log('❌ Connect Error: $data'));
 
@@ -28,31 +34,23 @@ class WebSocketServices {
       log('📍 Location update: $data');
       try {
         final jsonData = data is String ? jsonDecode(data) : data;
-        
-        final location = jsonData['location'];
-        final lat = location['lat'];
-        final lon = location['lon'];
-        final timestamp = jsonData['timestamp'];
-        final currentStopSequenceNumber =
-            jsonData['current_stop_sequence_number'];
-        final nextStopSequenceNumber = jsonData['next_stop_sequence_number'];
-        final distanceToNextStopMeters =
-            (jsonData['distanceToNextStopMeters'] as num?)?.toDouble();
-        final speed = (jsonData['speed'] as num?)?.toDouble();
-        final currentStopArrivalDelay = jsonData['currentStopArrivalDelay'];
-
-        if (lastStopSequenceNumber != null && currentStopSequenceNumber > lastStopSequenceNumber!) {
-          // print('🚌 Bus has arrived at stop sequence number: $lastStopSequenceNumber');  
-          if (AppGlobalKeys.navigatorKey.currentContext != null) {
-            if (AppGlobalKeys.navigatorKey.currentContext!.mounted) {
-              AppCommonMethods.currentStopDataShowingDialog(AppGlobalKeys.navigatorKey.currentContext!, stopName: "stopName");
+        final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
+          // getting stoplist from activeTripTimelineData and finding the stop with sequenceOrder equal to lastStopSequenceNumber
+          activeTripTimelineData.stopList?.forEach((stop) async {
+            // if stop sequenceOrder equal to lastStopSequenceNumber, showing dialog with stop name and playing stop audio
+            if (stop.sequenceOrder == currentStopSequenceNumber) {
+              log('🏁 Arrived at stop: ${stop.stopName} (Sequence: ${stop.sequenceOrder})');
+              if (AppGlobalKeys.navigatorKey.currentContext != null) {
+                if (AppGlobalKeys.navigatorKey.currentContext!.mounted) {
+                  // play stop audio if available
+                  if (stopAudios[stop.stopId.toString()] != null) {
+                    audioPlayer.play(UrlSource(stopAudios[stop.stopId.toString()]!));
+                  }
+                  currentStopDataShowingDialog(context: AppGlobalKeys.navigatorKey.currentContext!, stopName: stop.stopName ?? 'Unknown Stop');
+                }
+              }
             }
-          }
-          
-        }
-
-        lastStopSequenceNumber = currentStopSequenceNumber;
-
+          });
       } catch (e) {
         log('❌ Error parsing location-update: $e');
       }

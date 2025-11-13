@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
@@ -45,7 +46,11 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
 
   @override
   void dispose() {
-    _betterPlayerController?.dispose();
+    // _betterPlayerController?.dispose();
+    _betterPlayerController?.pause();
+    _betterPlayerController?.dispose(forceDispose: true);
+    socket.disconnect();
+    socket.dispose();
     super.dispose();
   }
 
@@ -85,7 +90,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
       betterPlayerDataSource: dataSource,
     );
 
-    _betterPlayerController?.setVolume(0.0);
+    _betterPlayerController?.setVolume(0.3);
     setState(() {});
   } catch (e) {
     log("Error initializing video: $e");
@@ -136,21 +141,16 @@ void _skipToNextOnError() async {
       listeners: [
         BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
           if (state is BusDataLoadedState) {
-            if (state.busData.busId != null) {
-            context.read<BusDataCubit>().getAllTrips(busId: state.busData.busId!, socket: socket);
-          }
+            // here if state is BusDataLoadedState, we can connect to socket after getting active trip data
+            context.read<BusDataCubit>().getActiveTrip(busId: state.busData.busId ?? 0, socket: socket);
+            // initialize video player with first video
           if (state.busData.adVideos?.isNotEmpty ?? false) {
               _videoList = state.localVideoPaths; // Store all video paths
               currentVideoIndex = 0;
               await initializeVideo(index: currentVideoIndex);
             }
           }
-
-          if (mounted) {
-            currentStopDataShowingDialog(context, stopName: "Muzhipillangadi");
-          }
         },),
-        // a listener for showing current stop data dialog when new stop data is available
       ],
       child: BlocBuilder<BusDataCubit, BusDataState>(builder: (context, state) {
         if (state is BustDataLoadingState) {

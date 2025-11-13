@@ -1,10 +1,12 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-Future<dynamic> currentStopDataShowingDialog(
-  BuildContext context, {
+Future<dynamic> currentStopDataShowingDialog({
+  required BuildContext context,
   required String stopName,
 }) {
+  AudioPlayer audioPlayer = AudioPlayer();
   return showGeneralDialog(
     context: context,
     barrierDismissible: false,

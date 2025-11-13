@@ -39,83 +39,86 @@ class _PairingCodeEnterPageState extends State<PairingCodeEnterPage> {
             child: SizedBox(
               height: ScreenUtil().screenHeight,
               width: ScreenUtil().screenWidth,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  AppConstraints.kHeight40,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Enter Pairing Code",
-                        style: AppCommonStyles.commonTextStyle(
-                          color: AppColors.kWhite,
-                          fontSize: 10.sp,
-                          fontFamily: AppAssets.robotoSemiBoldFont,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                      AppConstraints.kWidth8,
-                      // Text(
-                      //   "Hint(Bus no)",
-                      //   style: AppCommonStyles.commonTextStyle(
-                      //     color: AppColors.kBlack,
-                      //     fontSize: 6.sp,
-                      //     fontFamily: AppAssets.robotoSemiBoldFont,
-                      //     letterSpacing: 0.8,
-                      //   ),
-                      // ),
-                    ],
-                  ),
-                  AppConstraints.kHeight12,
-                  SizedBox(
-                    width: ScreenUtil().screenWidth / 3,
-                    child: CommonTextFormFieldWidget(
-                      controller: pairingCodeController,
-                      hintText: "Enter code",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                        borderSide: BorderSide(
-                          color: AppColors.kLightGrey,
-                          width: 1.w,
-                        ),
-                      ),
-                      keyboardType: TextInputType.text,
-                      fillColor: AppColors.kWhite,
-                      hintStyle: AppCommonStyles.commonTextStyle(
-                        color: AppColors.kLightGrey,
-                        fontSize: 6.sp,
-                        fontFamily: AppAssets.robotoRegularFont,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                  AppConstraints.kHeight20,
-                  ElevatedButton(
-                    onPressed: () {
-                      // connect with firebase collection with pairing code document
-                      context.read<BusDataCubit>().getBusData(
-                        pairingCode: pairingCodeController.text
-                            .toUpperCase()
-                            .trim(),
-                      );
-                    },
-                    child: BlocBuilder<BusDataCubit, BusDataState>(
-                      builder: (context, state) {
-                        return Text(
-                        (state is BustDataLoadingState) ? "Connecting..." : "Connect",
+              child: IgnorePointer(
+                ignoring: (context.read<BusDataCubit>().state is BustDataLoadingState),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    AppConstraints.kHeight40,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Enter Pairing Code",
                           style: AppCommonStyles.commonTextStyle(
-                            color: AppColors.kBlack,
-                            fontSize: 6.sp,
+                            color: AppColors.kWhite,
+                            fontSize: 10.sp,
                             fontFamily: AppAssets.robotoSemiBoldFont,
                             letterSpacing: 0.8,
                           ),
-                        );
-                      }
+                        ),
+                        AppConstraints.kWidth8,
+                        // Text(
+                        //   "Hint(Bus no)",
+                        //   style: AppCommonStyles.commonTextStyle(
+                        //     color: AppColors.kBlack,
+                        //     fontSize: 6.sp,
+                        //     fontFamily: AppAssets.robotoSemiBoldFont,
+                        //     letterSpacing: 0.8,
+                        //   ),
+                        // ),
+                      ],
                     ),
-                  ),
-                ],
+                    AppConstraints.kHeight12,
+                    SizedBox(
+                      width: ScreenUtil().screenWidth / 3,
+                      child: CommonTextFormFieldWidget(
+                        controller: pairingCodeController,
+                        hintText: "Enter code",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                          borderSide: BorderSide(
+                            color: AppColors.kLightGrey,
+                            width: 1.w,
+                          ),
+                        ),
+                        keyboardType: TextInputType.text,
+                        fillColor: AppColors.kWhite,
+                        hintStyle: AppCommonStyles.commonTextStyle(
+                          color: AppColors.kLightGrey,
+                          fontSize: 6.sp,
+                          fontFamily: AppAssets.robotoRegularFont,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    AppConstraints.kHeight20,
+                    ElevatedButton(
+                      onPressed: () {
+                        // connect with firebase collection with pairing code document
+                        context.read<BusDataCubit>().getBusData(
+                          pairingCode: pairingCodeController.text
+                              .toUpperCase()
+                              .trim(),
+                        );
+                      },
+                      child: BlocBuilder<BusDataCubit, BusDataState>(
+                        builder: (context, state) {
+                          return Text(
+                          (state is BustDataLoadingState) ? "Connecting..." : "Connect",
+                            style: AppCommonStyles.commonTextStyle(
+                              color: AppColors.kBlack,
+                              fontSize: 6.sp,
+                              fontFamily: AppAssets.robotoSemiBoldFont,
+                              letterSpacing: 0.8,
+                            ),
+                          );
+                        }
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
