@@ -1,13 +1,12 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Future<dynamic> currentStopDataShowingDialog({
   required BuildContext context,
   required String stopName,
-}) {
-  AudioPlayer audioPlayer = AudioPlayer();
-  return showGeneralDialog(
+}) async {
+  // Show the dialog
+  final dialogFuture = showGeneralDialog(
     context: context,
     barrierDismissible: false,
     barrierLabel: '',
@@ -45,7 +44,6 @@ Future<dynamic> currentStopDataShowingDialog({
               ),
               child: Stack(
                 children: [
-                  // Faint location icon background
                   Positioned(
                     right: -20,
                     top: -10,
@@ -55,8 +53,6 @@ Future<dynamic> currentStopDataShowingDialog({
                       color: AppColors.kWhite.withAlpha(26),
                     ),
                   ),
-
-                  // Main content
                   Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -77,15 +73,18 @@ Future<dynamic> currentStopDataShowingDialog({
                         Text(
                           "Current Stop",
                           style: AppCommonStyles.commonTextStyle(
-                            color: Colors.white70, fontSize: 8.sp,
-                            fontWeight: FontWeight.w500,letterSpacing: 0.5,
+                            color: Colors.white70,
+                            fontSize: 8.sp,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
                           ),
                         ),
                         AppConstraints.kHeight8,
                         Text(
                           stopName,
                           style: AppCommonStyles.commonTextStyle(
-                            color: AppColors.kWhite, fontSize: 20.sp,
+                            color: AppColors.kWhite,
+                            fontSize: 20.sp,
                             fontFamily: AppAssets.robotoBoldFont,
                             letterSpacing: 1.5,
                             height: 1.2,
@@ -112,4 +111,15 @@ Future<dynamic> currentStopDataShowingDialog({
       );
     },
   );
+
+  // Automatically close after 10 seconds
+  Future.delayed(const Duration(seconds: 10), () {
+    if (context.mounted) {
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+  });
+
+  return dialogFuture;
 }
