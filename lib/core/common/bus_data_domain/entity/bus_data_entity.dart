@@ -1,12 +1,14 @@
 import 'package:equatable/equatable.dart';
 
 class BusDataEntity extends Equatable{
+  final int? busId;
   final String? busName;
   final String? busNumberPlate;
   final List<String>? adVideos;
-  final List<String>? stopAudios;
+  final Map<String, dynamic>? stopAudios;
 
   const BusDataEntity({
+    this.busId,
     this.busName,
     this.busNumberPlate,
     this.adVideos,
@@ -14,12 +16,14 @@ class BusDataEntity extends Equatable{
   });
 
   BusDataEntity copyWith({
+    int? busId,
     String? busName,
     String? busNumberPlate,
     List<String>? adVideos,
-    List<String>? stopAudios,
+    Map<String, dynamic>? stopAudios,
   }) {
     return BusDataEntity(
+      busId: busId ?? this.busId,
       busName: busName ?? this.busName,
       busNumberPlate: busNumberPlate ?? this.busNumberPlate,
       adVideos: adVideos ?? this.adVideos,
@@ -29,6 +33,7 @@ class BusDataEntity extends Equatable{
 
   @override
   List<Object?> get props => [
+    busId,
     busName,
     busNumberPlate,
     adVideos,
