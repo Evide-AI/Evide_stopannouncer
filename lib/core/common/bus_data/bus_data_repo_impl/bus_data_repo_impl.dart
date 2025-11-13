@@ -22,4 +22,18 @@ class BusDataRepoImpl implements BusDataRepo{
     }
   }
 
+   @override
+  Future<Either<Failure, ActiveTripDataEntity>> getActiveTripData({required int busId}) async {
+    try {
+      final res = await busData.getActiveTripData(busId: busId);
+      if (res != null) {
+        return Right(res);
+      }else {
+        return Left(Failure(message: "No active trip data found"));
+      }
+    } catch (e) {
+      return Left(Failure(message: e.toString()));
+    }
+  }
+
 }
