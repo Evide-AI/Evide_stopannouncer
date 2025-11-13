@@ -17,7 +17,7 @@ class BusDataLoadedState extends BusDataState {
   const BusDataLoadedState({required this.busData, this.localVideoPaths = const []});
 
   @override
-  List<Object> get props => [busData];
+  List<Object> get props => [busData, localVideoPaths];
 }
 
 class BusDataErrorState extends BusDataState {
