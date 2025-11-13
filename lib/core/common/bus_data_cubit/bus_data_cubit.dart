@@ -1,20 +1,26 @@
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_active_trip_data_usecase.dart';
 import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_bus_doc_data_usecase.dart';
+import 'package:evide_stop_announcer_app/core/services/websocket_services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:socket_io_client/socket_io_client.dart';
 
 part 'bus_data_state.dart';
 
 class BusDataCubit extends Cubit<BusDataState> {
   final GetBusDocDataUsecase getBusDocDataUsecase;
+  final GetActiveTripDataUsecase getActiveTripDataUsecase;
   final Dio dio;
   List<String> localVideoPaths = [];
-  BusDataCubit(
-    {required this.getBusDocDataUsecase, required this.dio}
-  ) : super(BusDataCubitInitial());
+  BusDataCubit({
+    required this.getBusDocDataUsecase,
+    required this.dio,
+    required this.getActiveTripDataUsecase,
+  }) : super(BusDataCubitInitial());
 
   // Method for getting bus data (including bus name, no, ad_videos and stop_audios)
   void getBusData({String? pairingCode}) async{
@@ -41,6 +47,24 @@ class BusDataCubit extends Cubit<BusDataState> {
       },);
     } catch (e) {
       emit(BusDataErrorState(message: e.toString()));
+    }
+  }
+
+  Future<void> getAllTrips({required int busId, required Socket socket}) async {
+    try {
+      // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
+      final res = await getActiveTripDataUsecase(params: busId);
+      res.fold((failure) {
+        debugPrint("Error fetching active trip data: ${failure.message}");
+      }, (activeTripData) async {
+        if (activeTripData != null) {
+          WebSocketServices.connectSocket(tripId: activeTripData.tripId, socket: socket);
+        } else {
+          debugPrint("No active trip data found");
+        }
+      },);
+    } catch (e) {
+      print("Error fetching active trip data: ${e.toString()}");
     }
   }
 }
