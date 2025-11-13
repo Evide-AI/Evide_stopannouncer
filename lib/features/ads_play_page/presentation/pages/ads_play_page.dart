@@ -1,11 +1,16 @@
 import 'dart:developer';
 import 'dart:io';
 import 'package:better_player_plus/better_player_plus.dart';
+import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
+import 'package:evide_stop_announcer_app/core/constants/backend_constants.dart';
+import 'package:evide_stop_announcer_app/core/services/websocket_services.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 class AdsPlayPage extends StatefulWidget {
   const AdsPlayPage({super.key});
@@ -18,11 +23,24 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
   BetterPlayerController? _betterPlayerController;
   int currentVideoIndex = 0;
   List<String> _videoList = [];
+  late io.Socket socket;
 
   @override
   void initState() {
     super.initState();
     context.read<BusDataCubit>().getBusData();
+    socket = io.io(
+      BackendConstants.webSocketUrl,
+      io.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .setPath('/socket.io/')
+          .enableReconnection()
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(5000)
+          .setReconnectionAttempts(5)
+          .setTimeout(20000)
+          .build(),
+    );
   }
 
   @override
@@ -118,7 +136,10 @@ void _skipToNextOnError() async {
       listeners: [
         BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
           if (state is BusDataLoadedState) {
-            if (state.busData.adVideos?.isNotEmpty ?? false) {
+            if (state.busData.busId != null) {
+            context.read<BusDataCubit>().getAllTrips(busId: state.busData.busId!, socket: socket);
+          }
+          if (state.busData.adVideos?.isNotEmpty ?? false) {
               _videoList = state.localVideoPaths; // Store all video paths
               currentVideoIndex = 0;
               await initializeVideo(index: currentVideoIndex);

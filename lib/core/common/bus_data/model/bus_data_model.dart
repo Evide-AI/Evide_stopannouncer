@@ -3,6 +3,7 @@ import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_
 
 class BusDataModel extends BusDataEntity{
   const BusDataModel({
+    super.busId,
     super.busName,
     super.busNumberPlate,
     super.adVideos,
@@ -11,17 +12,19 @@ class BusDataModel extends BusDataEntity{
 
   factory BusDataModel.fromMap(Map<String, dynamic> map) {
     return BusDataModel(
+      busId: map[DbConstants.busId] as int?,
       busName: map[DbConstants.busName] as String?,
       busNumberPlate: map[DbConstants.busNumberPlate] as String?,
-      // adVideos: List<String>.from(map[DbConstants.adVideos] as List<dynamic>? ?? []),
-      // stopAudios: List<String>.from(map[DbConstants.stopAudios] as List<dynamic>? ?? []),
-      adVideos: map[DbConstants.adVideos],
-      stopAudios: map[DbConstants.stopAudios],
+      adVideos: map[DbConstants.adVideos] != null ? List<String>.from(map[DbConstants.adVideos]) : null,
+      stopAudios: map[DbConstants.stopAudios] != null
+              ? Map<String, String>.from(map[DbConstants.stopAudios])
+              : null,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
+      DbConstants.busId: busId,
       DbConstants.busName: busName,
       DbConstants.busNumberPlate: busNumberPlate,
       DbConstants.adVideos: adVideos,

@@ -10,6 +10,7 @@ void main() async{
   await Firebase.initializeApp(
    options: DefaultFirebaseOptions.currentPlatform,
   );
+  await initDependencies();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
@@ -17,6 +18,5 @@ void main() async{
 
   // immersive mode for full-screen TV experience
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  initDependencies();
   runApp(RootWidgetPage());
 }
