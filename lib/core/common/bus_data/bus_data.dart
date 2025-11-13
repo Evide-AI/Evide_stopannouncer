@@ -3,9 +3,15 @@ import 'package:evide_stop_announcer_app/core/constants/db_constants.dart';
 import 'package:evide_stop_announcer_app/core/failure/failure.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data/model/bus_data_model.dart';
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data/model/active_trip_data_model.dart';
+import 'package:evide_stop_announcer_app/core/constants/api_endpoint.dart';
+import 'package:evide_stop_announcer_app/core/constants/backend_constants.dart';
+import 'package:evide_stop_announcer_app/core/services/api_reponse.dart';
 
 abstract class BusData {
   Future<BusDataModel?> getBusDocData({required String busPairingCode});
+  Future<ActiveTripDataModel> getActiveTripData({required int busId});
 }
 
 class BusDataImpl implements BusData {
