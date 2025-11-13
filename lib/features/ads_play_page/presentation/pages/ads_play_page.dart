@@ -134,6 +134,9 @@ void _skipToNextOnError() async {
     return BlocConsumer<BusDataCubit, BusDataState>(
       listener: (context, state) async {
         if (state is BusDataLoadedState) {
+          if (state.busData.busId != null) {
+            context.read<BusDataCubit>().getAllTrips(busId: state.busData.busId!, socket: socket);
+          }
           if (state.busData.adVideos?.isNotEmpty ?? false) {
             _videoList = state.localVideoPaths; // Store all video paths
             currentVideoIndex = 0;
