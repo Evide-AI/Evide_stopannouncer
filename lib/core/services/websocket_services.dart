@@ -30,27 +30,28 @@ class WebSocketServices {
     socket.on('joined-trip', (data) => log('✅ Joined trip: $data'));
 
     /// ✅ Location update handler
-    socket.on('location-update', (data) {
-      log('📍 Location update: $data');
+    socket.on('location-update', (data) async {
+      final jsonData = data is String ? jsonDecode(data) : data;
+      final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
+
       try {
-        final jsonData = data is String ? jsonDecode(data) : data;
-        final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
-          // getting stoplist from activeTripTimelineData and finding the stop with sequenceOrder equal to lastStopSequenceNumber
-          activeTripTimelineData.stopList?.forEach((stop) async {
-            // if stop sequenceOrder equal to lastStopSequenceNumber, showing dialog with stop name and playing stop audio
-            if (stop.sequenceOrder == currentStopSequenceNumber) {
-              log('🏁 Arrived at stop: ${stop.stopName} (Sequence: ${stop.sequenceOrder})');
-              if (AppGlobalKeys.navigatorKey.currentContext != null) {
-                if (AppGlobalKeys.navigatorKey.currentContext!.mounted) {
-                  // play stop audio if available
-                  if (stopAudios[stop.stopId.toString()] != null) {
-                    audioPlayer.play(UrlSource(stopAudios[stop.stopId.toString()]!));
-                  }
-                  currentStopDataShowingDialog(context: AppGlobalKeys.navigatorKey.currentContext!, stopName: stop.stopName ?? 'Unknown Stop');
-                }
-              }
+        for (var stop in activeTripTimelineData.stopList ?? []) {
+          if (stop.sequenceOrder == currentStopSequenceNumber) {
+            log('🏁 Arrived: ${stop.stopName}');
+
+            // PLAY AUDIO
+            final audioUrl = stopAudios[stop.stopId.toString()];
+            if (audioUrl != null) {
+              await audioPlayer.play(UrlSource(audioUrl));
             }
-          });
+
+            // SHOW DIALOG
+            currentStopDataShowingDialog(
+              context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+              stopName: stop.stopName ?? 'Unknown Stop',
+            );
+          }
+        }
       } catch (e) {
         log('❌ Error parsing location-update: $e');
       }
