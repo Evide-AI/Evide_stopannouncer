@@ -6,6 +6,7 @@ import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 class WebSocketServices {
+  static int? _lastShownStopSequence;  
   /// ✅ Connect to backend socket
   static void connectSocket({
     required TimeLineEntity activeTripTimelineData,
@@ -39,23 +40,27 @@ class WebSocketServices {
           if (stop.sequenceOrder == currentStopSequenceNumber) {
             log('🏁 Arrived: ${stop.stopName}');
 
-            // PLAY AUDIO
-            final audioUrl = stopAudios[stop.stopId.toString()];
-            if (audioUrl != null) {
-              await audioPlayer.play(UrlSource(audioUrl));
-            }
+            if (_lastShownStopSequence != currentStopSequenceNumber) {
+              // PLAY AUDIO
+              final audioUrl = stopAudios[stop.stopId.toString()];
+              if (audioUrl != null) {
+                await audioPlayer.play(UrlSource(audioUrl));
+              }
 
-            // SHOW DIALOG
-            currentStopDataShowingDialog(
-              context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-              stopName: stop.stopName ?? 'Unknown Stop',
-            );
+              // SHOW DIALOG
+              currentStopDataShowingDialog(
+                context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+                stopName: stop.stopName ?? 'Unknown Stop',
+              );
+            }
+            _lastShownStopSequence = currentStopSequenceNumber;
           }
         }
       } catch (e) {
         log('❌ Error parsing location-update: $e');
       }
     });
+
   }
 
 
