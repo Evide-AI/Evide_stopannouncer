@@ -8,6 +8,7 @@ class BusDataModel extends BusDataEntity{
     super.busNumberPlate,
     super.adVideos,
     super.stopAudios,
+    super.activeTripTimelineModel,
   });
 
   factory BusDataModel.fromMap(Map<String, dynamic> map) {

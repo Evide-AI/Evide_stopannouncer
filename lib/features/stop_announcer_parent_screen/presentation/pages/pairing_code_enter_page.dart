@@ -25,7 +25,7 @@ class _PairingCodeEnterPageState extends State<PairingCodeEnterPage> {
   Widget build(BuildContext context) {
     return BlocListener<BusDataCubit, BusDataState>(
       listener: (context, state) {
-        if (state is BusDataLoadedState) {
+        if (state.status == BusDataStatus.loaded) {
           AppGlobalKeys.navigatorKey.currentState?.pushAndRemoveUntil(MaterialPageRoute(builder: (context) {
             return SplashScreen();
           },), (route) => false,);
@@ -40,7 +40,7 @@ class _PairingCodeEnterPageState extends State<PairingCodeEnterPage> {
               height: ScreenUtil().screenHeight,
               width: ScreenUtil().screenWidth,
               child: IgnorePointer(
-                ignoring: (context.read<BusDataCubit>().state is BustDataLoadingState),
+                ignoring: (context.read<BusDataCubit>().state.status == BusDataStatus.loading),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -106,7 +106,8 @@ class _PairingCodeEnterPageState extends State<PairingCodeEnterPage> {
                       child: BlocBuilder<BusDataCubit, BusDataState>(
                         builder: (context, state) {
                           return Text(
-                          (state is BustDataLoadingState) ? "Connecting..." : "Connect",
+                          // (state is BustDataLoadingState) ? "Connecting..." : "Connect",
+                          (state.status == BusDataStatus.loading) ? "Connecting..." : "Connect",
                             style: AppCommonStyles.commonTextStyle(
                               color: AppColors.kBlack,
                               fontSize: 6.sp,

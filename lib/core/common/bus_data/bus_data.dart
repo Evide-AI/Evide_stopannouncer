@@ -28,7 +28,35 @@ class BusDataImpl implements BusData {
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
 
-        return BusDataModel.fromMap(data);
+        // return BusDataModel.fromMap(data);
+        final busDataModel = BusDataModel.fromMap(data);
+        if (busDataModel.busId != null) {
+          try {
+            final allTrips = await getAllTripsByBusId(busId: busDataModel.busId!);
+            if(allTrips.isNotEmpty){
+              final activeTrips = allTrips.where((trip) => trip.isTripActive == true).toList();
+              if(activeTrips.isNotEmpty){
+                final activeTrip = activeTrips.first;
+                if (activeTrip.tripId != null) {
+                    final timelineResponse = await dio.get("${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
+                    final apiResponse = ApiResponse.fromJson(
+                      json: timelineResponse.data,
+                      fromDataJson: (data) {
+                        return TimeLineModel.fromJson(data);
+                      },
+                    );
+                    busDataModel.copyWith(activeTripTimelineModel : apiResponse.data);
+                }
+              }
+            }
+            return busDataModel;
+          } catch (e) {
+            debugPrint('Error fetching active trip data: $e');
+          }
+        }
+        
+
+        return busDataModel;
       }else {
         throw Failure(message: "Bus document does not exist");
       }

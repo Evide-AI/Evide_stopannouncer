@@ -21,6 +21,7 @@ class WebSocketServices {
     required Map<String, dynamic> stopAudios,
     required AudioPlayer audioPlayer,
   }) {
+    socket.connect();
     socket.onConnect((_) {
       log('🟢 Connected: ${socket.id}');
       final tripId = activeTripTimelineData.tripDetails?.id;

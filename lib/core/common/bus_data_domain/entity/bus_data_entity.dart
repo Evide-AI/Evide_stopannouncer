@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
 
 class BusDataEntity extends Equatable{
   final int? busId;
@@ -6,6 +7,7 @@ class BusDataEntity extends Equatable{
   final String? busNumberPlate;
   final List<String>? adVideos;
   final Map<String, dynamic>? stopAudios;
+  final TimeLineEntity? activeTripTimelineModel;
 
   const BusDataEntity({
     this.busId,
@@ -13,6 +15,7 @@ class BusDataEntity extends Equatable{
     this.busNumberPlate,
     this.adVideos,
     this.stopAudios,
+    this.activeTripTimelineModel,
   });
 
   BusDataEntity copyWith({
@@ -21,6 +24,7 @@ class BusDataEntity extends Equatable{
     String? busNumberPlate,
     List<String>? adVideos,
     Map<String, dynamic>? stopAudios,
+    TimeLineEntity? activeTripTimelineModel,
   }) {
     return BusDataEntity(
       busId: busId ?? this.busId,
@@ -28,6 +32,7 @@ class BusDataEntity extends Equatable{
       busNumberPlate: busNumberPlate ?? this.busNumberPlate,
       adVideos: adVideos ?? this.adVideos,
       stopAudios: stopAudios ?? this.stopAudios,
+      activeTripTimelineModel: activeTripTimelineModel ?? this.activeTripTimelineModel,
     );
   }
 
@@ -38,5 +43,6 @@ class BusDataEntity extends Equatable{
     busNumberPlate,
     adVideos,
     stopAudios,
+    activeTripTimelineModel,
   ];
 }

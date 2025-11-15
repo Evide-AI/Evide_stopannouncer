@@ -25,7 +25,7 @@ class BusDataCubit extends Cubit<BusDataState> {
 
   // Method for getting bus data (including bus name, no, ad_videos and stop_audios)
   void getBusData({String? pairingCode}) async{
-    emit(BustDataLoadingState());
+    emit(state.copyWith(status: BusDataStatus.loading));
     try {
       final savedPairingCode = SharedPrefsServices.getPairingCode();
       // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
@@ -34,6 +34,10 @@ class BusDataCubit extends Cubit<BusDataState> {
         emit(BusDataErrorState(message: failure.message));
       }, (busdata) async {
         if (busdata != null) {
+          // if (socket != null && audioPlayer != null && busdata.activeTripTimelineModel != null) {
+          //   WebSocketServices.connectSocket(activeTripTimelineData: busdata.activeTripTimelineModel!, socket: socket, stopAudios: busdata.stopAudios ?? {}, audioPlayer: audioPlayer);
+          //   socket.connect();
+          // }
           await SharedPrefsServices.setIsPaired(isPaired: true);
           // if no pairing code is saved, save the current one
           if (savedPairingCode == null || savedPairingCode.isEmpty) {
@@ -41,9 +45,10 @@ class BusDataCubit extends Cubit<BusDataState> {
           }
           // download videos to local storage and assign paths to localVideoPaths
           localVideoPaths = await AppCommonMethods.downloadVideosToLocal(busdata.adVideos ?? []);
-          emit(BusDataLoadedState(busData: busdata, localVideoPaths: localVideoPaths));
+          emit(state.copyWith(busData: busdata, localVideoPaths: localVideoPaths, status: BusDataStatus.loaded));
         } else {
-          emit(const BusDataErrorState(message: "Bus data is not found"));
+          // emit(const BusDataErrorState(message: "Bus data is not found"));
+          emit(state.copyWith(status: BusDataStatus.error));
         }
       },);
     } catch (e) {
@@ -51,30 +56,30 @@ class BusDataCubit extends Cubit<BusDataState> {
     }
   }
 
-  Future<void> getActiveTrip({required int busId, required Socket socket, required AudioPlayer audioPlayer}) async {
-    try {
-      // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
-      final res = await getActiveTripDataUsecase(params: busId);
-      res.fold((failure) {
-        debugPrint("Error fetching active trip data: ${failure.message}");
-      }, (activeTripTimelineData) async {
-        if (activeTripTimelineData != null) {
-          if(state is BusDataLoadedState) {
-            Future.delayed(Duration(seconds: 2), () {
-              WebSocketServices.connectSocket(
-                activeTripTimelineData: activeTripTimelineData,
-                socket: socket,
-                stopAudios: (state as BusDataLoadedState).busData.stopAudios ?? {},
-                audioPlayer: audioPlayer,
-              );
-            });
-          }
-        } else {
-          debugPrint("No active trip data found");
-        }
-      },);
-    } catch (e) {
-      print("Error fetching active trip data: ${e.toString()}");
-    }
-  }
+  // Future<void> getActiveTrip({required int busId, required Socket socket, required AudioPlayer audioPlayer}) async {
+  //   try {
+  //     // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
+  //     final res = await getActiveTripDataUsecase(params: busId);
+  //     res.fold((failure) {
+  //       debugPrint("Error fetching active trip data: ${failure.message}");
+  //     }, (activeTripTimelineData) async {
+  //       if (activeTripTimelineData != null) {
+  //         if(state is BusDataLoadedState) {
+  //           Future.delayed(Duration(seconds: 2), () {
+  //             WebSocketServices.connectSocket(
+  //               activeTripTimelineData: activeTripTimelineData,
+  //               socket: socket,
+  //               stopAudios: (state as BusDataLoadedState).busData.stopAudios ?? {},
+  //               audioPlayer: audioPlayer,
+  //             );
+  //           });
+  //         }
+  //       } else {
+  //         debugPrint("No active trip data found");
+  //       }
+  //     },);
+  //   } catch (e) {
+  //     print("Error fetching active trip data: ${e.toString()}");
+  //   }
+  // }
 }

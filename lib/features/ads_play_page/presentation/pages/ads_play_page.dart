@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
@@ -5,6 +6,7 @@ import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
 import 'package:evide_stop_announcer_app/core/constants/backend_constants.dart';
+import 'package:evide_stop_announcer_app/core/services/websocket_services.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,9 +29,35 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
   @override
   void initState() {
     super.initState();
-    initializeSocket();
     context.read<BusDataCubit>().getBusData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      initializeSocket();
+    });
+    // context.read<BusDataCubit>().getBusData(audioPlayer: audioPlayer, socket: socket);
+    // Add a small delay to ensure socket is properly initialized
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   context.read<BusDataCubit>().getBusData(
+    //     audioPlayer: audioPlayer,
+    //     socket: socket
+    //   );
+    // });
+
   }
+
+  // initializeSocket() {
+  //   socket = io.io(
+  //     BackendConstants.webSocketUrl,
+  //     io.OptionBuilder()
+  //         .setTransports(['websocket', 'polling'])
+  //         .setPath('/socket.io/')
+  //         .enableReconnection()
+  //         .setReconnectionDelay(1000)
+  //         .setReconnectionDelayMax(5000)
+  //         .setReconnectionAttempts(20)
+  //         .setTimeout(60000)
+  //         .build(),
+  //   );
+  // }
 
   initializeSocket() {
     socket = io.io(
@@ -44,7 +72,54 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
           .setTimeout(60000)
           .build(),
     );
+
+    // on connection established join the trip room
+    socket.onConnect((_) {
+      log('🟢 Socket Connected: ${socket.id}');
+      final busDataState = context.read<BusDataCubit>().state;
+      final tripId = busDataState.busData.activeTripTimelineModel?.tripDetails?.id;
+      if (tripId != null) {
+        log('🚍 Joining trip: $tripId');
+        socket.emit('join-trip', {'tripId': tripId});
+      }
+    });
+
+    // if joined trip
+    socket.on('joined-trip', (data) => log('✅ Joined trip: $data'));
+
+    // if trip ended fetch new trip data of the bus
+   socket.on("trip-ended", (data) {
+    log('🏁 Trip ended: $data');
+    // Leave previous trip room
+    if (data != null && data['tripId'] != null) {
+      socket.emit("leave-trip", { "tripId": data['tripId'] });
+    }
+    // Fetch new bus data
+    context.read<BusDataCubit>().getBusData();
+  });
+
+    // if disconnected
+    socket.onDisconnect((reason) => log('🔴 Disconnected: $reason'));
+      socket.onError((data) => log('🚨 Socket Error: $data'));
+
+    // on error (like trip not found or not active)
+    socket.on('error', (error) {log('❌ Server Error: $error');});
+
+    // on gps location update
+    socket.on('location-update', (data) {
+      final jsonData = data is String ? jsonDecode(data) : data;
+      log("📍 location data: $jsonData");
+    });
+
+    // on connection error occured
+    socket.onConnectError((data) {
+      log('❌ Socket Connect Error: $data');
+    });
+
+    // connect the socket
+    socket.connect(); // only once
   }
+
 
   @override
   void dispose() {
@@ -143,9 +218,13 @@ void _skipToNextOnError() async {
     return MultiBlocListener(
       listeners: [
         BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
-          if (state is BusDataLoadedState) {
+          if (state.status == BusDataStatus.loaded) {
+            if (state.busData.activeTripTimelineModel?.tripDetails?.id != null) {
+              log('🚍 Joining trip: ${state.busData.activeTripTimelineModel?.tripDetails?.id}');
+              socket.emit('join-trip', {'tripId': state.busData.activeTripTimelineModel?.tripDetails?.id});
+            }
             // here if state is BusDataLoadedState, we can connect to socket after getting active trip data
-            context.read<BusDataCubit>().getActiveTrip(busId: state.busData.busId ?? 0, socket: socket, audioPlayer: audioPlayer);
+            // context.read<BusDataCubit>().getActiveTrip(busId: state.busData.busId ?? 0, socket: socket, audioPlayer: audioPlayer);
             // initialize video player with first video
           if (state.busData.adVideos?.isNotEmpty ?? false) {
               _videoList = state.localVideoPaths; // Store all video paths
@@ -156,7 +235,7 @@ void _skipToNextOnError() async {
         },),
       ],
       child: BlocBuilder<BusDataCubit, BusDataState>(builder: (context, state) {
-        if (state is BustDataLoadingState) {
+        if (state.status == BusDataStatus.loading || state.status == BusDataStatus.error) {
           return adsPlayPageCommonLoadingWidget();
         }
 
