@@ -5,7 +5,10 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
+import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
 import 'package:evide_stop_announcer_app/core/constants/backend_constants.dart';
+import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +27,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
   int currentVideoIndex = 0;
   List<String> _videoList = [];
   late io.Socket socket;
+  int? lastShownStopSequence;
 
   @override
   void initState() {
@@ -74,9 +78,9 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
 
     // on connection established join the trip room
     socket.onConnect((_) {
+      final busData = context.read<BusDataCubit>().state.busData;
       log('🟢 Socket Connected: ${socket.id}');
-      final busDataState = context.read<BusDataCubit>().state;
-      final tripId = busDataState.busData.activeTripTimelineModel?.tripDetails?.id;
+      final tripId = busData.activeTripTimelineModel?.tripDetails?.id;
       if (tripId != null) {
         log('🚍 Joining trip: $tripId');
         socket.emit('join-trip', {'tripId': tripId});
@@ -107,7 +111,33 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
     // on gps location update
     socket.on('location-update', (data) {
       final jsonData = data is String ? jsonDecode(data) : data;
+      final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
       log("📍 location data: $jsonData");
+
+      try {
+        for (StopEntity stop in context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? []) {
+          if (stop.sequenceOrder == currentStopSequenceNumber) {
+            log('🏁 Arrived: ${stop.stopName}');
+
+            if (lastShownStopSequence != currentStopSequenceNumber) {
+              // PLAY AUDIO
+              final audioUrl = context.read<BusDataCubit>().state.busData.stopAudios?[stop.stopId.toString()];
+              if (audioUrl != null) {
+                audioPlayer.play(UrlSource(audioUrl));
+              }
+
+              // SHOW DIALOG
+              currentStopDataShowingDialog(
+                context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+                stopName: stop.stopName ?? 'Unknown Stop',
+              );
+            }
+            lastShownStopSequence = currentStopSequenceNumber;
+          }
+        }
+      } catch (e) {
+        log('❌ Error parsing location-update: $e');
+      }
     });
 
     // on connection error occured
