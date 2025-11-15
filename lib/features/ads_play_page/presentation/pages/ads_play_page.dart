@@ -5,12 +5,9 @@ import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
 import 'package:evide_stop_announcer_app/core/constants/backend_constants.dart';
-import 'package:evide_stop_announcer_app/core/services/websocket_services.dart';
-import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lottie/lottie.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 class AdsPlayPage extends StatefulWidget {
