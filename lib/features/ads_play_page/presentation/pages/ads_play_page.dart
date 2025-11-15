@@ -34,29 +34,18 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
   }
 
   initializeSocket() {
-    // socket = io.io(
-    //   BackendConstants.webSocketUrl,
-    //   io.OptionBuilder()
-    //       .setTransports(['websocket', 'polling'])
-    //       .setPath('/socket.io/')
-    //       .enableReconnection()
-    //       .setReconnectionDelay(1000)
-    //       .setReconnectionDelayMax(5000)
-    //       .setReconnectionAttempts(5)
-    //       .setTimeout(20000)
-    //       .build(),
-    // );
     socket = io.io(
-    BackendConstants.webSocketUrl,
-    io.OptionBuilder()
-        .setTransports(['websocket']) // Prefer pure websocket
-        .enableReconnection()
-        .setReconnectionAttempts(10)
-        .setReconnectionDelay(2000) // 2 seconds
-        .setReconnectionDelayMax(10000) // 10 seconds
-        .setTimeout(30000) // 30s connection timeout
-        .build(),
-  );
+      BackendConstants.webSocketUrl,
+      io.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .setPath('/socket.io/')
+          .enableReconnection()
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(5000)
+          .setReconnectionAttempts(20)
+          .setTimeout(60000)
+          .build(),
+    );
   }
 
   @override
@@ -105,7 +94,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
       betterPlayerDataSource: dataSource,
     );
 
-    _betterPlayerController?.setVolume(0.0);
+    _betterPlayerController?.setVolume(0.1);
     setState(() {});
   } catch (e) {
     log("Error initializing video: $e");

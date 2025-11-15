@@ -7,6 +7,13 @@ import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dia
 import 'package:socket_io_client/socket_io_client.dart' as io;
 class WebSocketServices {
   static int? _lastShownStopSequence;
+
+  static void joinTrip(io.Socket socket, int tripId) {
+  socket.emitWithAck('join-trip', {'tripId': tripId}, ack: (data) {
+    log('🟢 Trip joined ACK: $data');
+  });
+}
+
   /// ✅ Connect to backend socket
   static void connectSocket({
     required TimeLineEntity activeTripTimelineData,
@@ -15,11 +22,21 @@ class WebSocketServices {
   }) {
     AudioPlayer audioPlayer = AudioPlayer();
     socket.onConnect((_) {
-      log('🟢 Connected to socket with ID: ${socket.id}');
-      if (activeTripTimelineData.tripDetails?.id != null) {
-        socket.emit('join-trip', {'tripId': activeTripTimelineData.tripDetails?.id});
+      log('🟢 Connected: ${socket.id}');
+      final tripId = activeTripTimelineData.tripDetails?.id;
+      if (tripId != null) {
+        joinTrip(socket, tripId);
       }
     });
+
+    socket.onReconnect((attempt) {
+      log('🔄 Reconnected (attempt $attempt)');
+      final tripId = activeTripTimelineData.tripDetails?.id;
+      if (tripId != null) {
+        joinTrip(socket, tripId);
+      }
+    });
+
 
     socket.onDisconnect((reason) {
       log('🔴 Disconnected: $reason');

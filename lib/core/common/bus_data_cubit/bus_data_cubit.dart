@@ -59,7 +59,13 @@ class BusDataCubit extends Cubit<BusDataState> {
       }, (activeTripTimelineData) async {
         if (activeTripTimelineData != null) {
           if(state is BusDataLoadedState) {
-            WebSocketServices.connectSocket(activeTripTimelineData: activeTripTimelineData, socket: socket, stopAudios: (state as BusDataLoadedState).busData.stopAudios ?? {});
+            Future.delayed(Duration(seconds: 2), () {
+              WebSocketServices.connectSocket(
+                activeTripTimelineData: activeTripTimelineData,
+                socket: socket,
+                stopAudios: (state as BusDataLoadedState).busData.stopAudios ?? {},
+              );
+            });
           }
         } else {
           debugPrint("No active trip data found");
