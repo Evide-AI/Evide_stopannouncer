@@ -6,7 +6,7 @@ import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 class WebSocketServices {
-  static int? _lastShownStopSequence;  
+  static int? _lastShownStopSequence;
   /// ✅ Connect to backend socket
   static void connectSocket({
     required TimeLineEntity activeTripTimelineData,
@@ -23,7 +23,6 @@ class WebSocketServices {
 
     socket.onDisconnect((reason) {
       log('🔴 Disconnected: $reason');
-      audioPlayer.dispose();
     });
     socket.onError((data) => log('🚨 Socket Error: $data'));
     socket.onConnectError((data) => log('❌ Connect Error: $data'));
@@ -31,12 +30,12 @@ class WebSocketServices {
     socket.on('joined-trip', (data) => log('✅ Joined trip: $data'));
 
     /// ✅ Location update handler
-    socket.on('location-update', (data) async {
+    socket.on('location-update', (data) {
       final jsonData = data is String ? jsonDecode(data) : data;
       final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
 
       try {
-        for (var stop in activeTripTimelineData.stopList ?? []) {
+        for (StopEntity stop in activeTripTimelineData.stopList ?? []) {
           if (stop.sequenceOrder == currentStopSequenceNumber) {
             log('🏁 Arrived: ${stop.stopName}');
 
@@ -44,7 +43,7 @@ class WebSocketServices {
               // PLAY AUDIO
               final audioUrl = stopAudios[stop.stopId.toString()];
               if (audioUrl != null) {
-                await audioPlayer.play(UrlSource(audioUrl));
+                audioPlayer.play(UrlSource(audioUrl));
               }
 
               // SHOW DIALOG
