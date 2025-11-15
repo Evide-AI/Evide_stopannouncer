@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
@@ -50,7 +51,7 @@ class BusDataCubit extends Cubit<BusDataState> {
     }
   }
 
-  Future<void> getActiveTrip({required int busId, required Socket socket}) async {
+  Future<void> getActiveTrip({required int busId, required Socket socket, required AudioPlayer audioPlayer}) async {
     try {
       // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
       final res = await getActiveTripDataUsecase(params: busId);
@@ -64,6 +65,7 @@ class BusDataCubit extends Cubit<BusDataState> {
                 activeTripTimelineData: activeTripTimelineData,
                 socket: socket,
                 stopAudios: (state as BusDataLoadedState).busData.stopAudios ?? {},
+                audioPlayer: audioPlayer,
               );
             });
           }

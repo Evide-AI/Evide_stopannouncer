@@ -22,6 +22,7 @@ class AdsPlayPage extends StatefulWidget {
 
 class _AdsPlayPageState extends State<AdsPlayPage> {
   BetterPlayerController? _betterPlayerController;
+  AudioPlayer audioPlayer = AudioPlayer();
   int currentVideoIndex = 0;
   List<String> _videoList = [];
   late io.Socket socket;
@@ -55,6 +56,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
     _betterPlayerController?.dispose(forceDispose: true);
     socket.disconnect();
     socket.dispose();
+    audioPlayer.dispose();
     super.dispose();
   }
 
@@ -94,7 +96,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
       betterPlayerDataSource: dataSource,
     );
 
-    _betterPlayerController?.setVolume(0.1);
+    _betterPlayerController?.setVolume(audioPlayer.state == PlayerState.playing ? 0.0 : 0.1);
     setState(() {});
   } catch (e) {
     log("Error initializing video: $e");
@@ -146,7 +148,7 @@ void _skipToNextOnError() async {
         BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
           if (state is BusDataLoadedState) {
             // here if state is BusDataLoadedState, we can connect to socket after getting active trip data
-            context.read<BusDataCubit>().getActiveTrip(busId: state.busData.busId ?? 0, socket: socket);
+            context.read<BusDataCubit>().getActiveTrip(busId: state.busData.busId ?? 0, socket: socket, audioPlayer: audioPlayer);
             // initialize video player with first video
           if (state.busData.adVideos?.isNotEmpty ?? false) {
               _videoList = state.localVideoPaths; // Store all video paths

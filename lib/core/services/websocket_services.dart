@@ -19,8 +19,8 @@ class WebSocketServices {
     required TimeLineEntity activeTripTimelineData,
     required io.Socket socket,
     required Map<String, dynamic> stopAudios,
+    required AudioPlayer audioPlayer,
   }) {
-    AudioPlayer audioPlayer = AudioPlayer();
     socket.onConnect((_) {
       log('🟢 Connected: ${socket.id}');
       final tripId = activeTripTimelineData.tripDetails?.id;
