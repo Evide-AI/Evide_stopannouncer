@@ -13,7 +13,7 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 class WebSocketServices {
   static int? lastShownStopSequence;
 
-  static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required BetterPlayerController? betterPlayerController, required AudioPlayer audioPlayer}) {
+  static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required AudioPlayer audioPlayer}) {
     // on connection established join the trip room
     socket.onConnect((_) {
       final busData = context.read<BusDataCubit>().state.busData;
@@ -75,19 +75,7 @@ class WebSocketServices {
                   .busData
                   .stopAudios?[stop.stopId.toString()];
               if (audioUrl != null) {
-                /// 🔇 Mute video before playing stop audio
-                betterPlayerController?.videoPlayerController?.setVolume(0.0);
-
-                audioPlayer.play(UrlSource(audioUrl));
-
-                /// 🟢 When stop audio completes – restore video volume
-                Future.delayed(Duration(seconds: 1), () {
-                  audioPlayer.onPlayerComplete.listen((event) {
-                    betterPlayerController?.videoPlayerController?.setVolume(
-                      0.01,
-                    );
-                  });
-                });
+                playStopAudioAndHandleVideoVolume(audioUrl: audioUrl);
               }
 
               // SHOW DIALOG

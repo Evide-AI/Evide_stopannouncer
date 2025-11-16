@@ -24,7 +24,6 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
   int currentVideoIndex = 0;
   List<String> _videoList = [];
   late io.Socket socket;
-  int? lastShownStopSequence;
 
   @override
   void initState() {
@@ -34,7 +33,25 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
       context.read<BusDataCubit>().getBusData();
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
-          WebSocketServices.connectAndListenToSocket(socket: socket, context: context, betterPlayerController: _betterPlayerController, audioPlayer: audioPlayer);
+          WebSocketServices.connectAndListenToSocket(
+            socket: socket, context: context,
+            audioPlayer: audioPlayer,
+            playStopAudioAndHandleVideoVolume: ({required String audioUrl}) {
+              /// 🔇 Mute video before playing stop audio
+                _betterPlayerController?.videoPlayerController?.setVolume(0.0);
+
+                audioPlayer.play(UrlSource(audioUrl));
+
+                /// 🟢 When stop audio completes – restore video volume
+                Future.delayed(Duration(seconds: 1), () {
+                  audioPlayer.onPlayerComplete.listen((event) {
+                    _betterPlayerController?.videoPlayerController?.setVolume(
+                      0.01,
+                    );
+                  });
+                });
+            }
+          );
         }
       });
     });
