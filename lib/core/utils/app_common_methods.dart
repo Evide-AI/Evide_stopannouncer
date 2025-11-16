@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 class AppCommonMethods {
@@ -22,78 +23,32 @@ class AppCommonMethods {
     return uniqueCode;
   }
 
-//   static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async {
-//   if (videoUrls.isEmpty) return [];
+  // commonSnackbar method
+  static void commonSnackbar({required BuildContext context, required String message}) {
+    final snackBar = SnackBar(
+      backgroundColor: AppColors.kTransparent,
+      elevation: 0,
+      content: Text(
+        message,
+        textAlign: TextAlign.center, // Center align the text
+        style: AppCommonStyles.commonTextStyle(
+          fontSize: 10.sp,
+          color: AppColors.kWhite,
+        ),
+      ),
+      duration: Duration(seconds: 1),
+      behavior: SnackBarBehavior.floating, // Makes it floating
+      margin: EdgeInsets.only(
+        left: 20, // Add some horizontal margin
+        right: 20,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10), // Rounded corners
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
 
-//   final appDir = await getApplicationDocumentsDirectory();
-//   const validVideoExtensions = {
-//     '.mp4', '.webm', '.mov', '.mkv', '.avi', '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
-//   };
-
-//   final dio = serviceLocator<Dio>();
-
-//   // Use Future.wait to download multiple videos concurrently (limit to avoid overload)
-//   final futures = <Future<String?>>[];
-
-//   for (int i = 0; i < videoUrls.length; i++) {
-//     final url = videoUrls[i];
-//     futures.add(() async {
-//       try {
-//         final decodedUrl = Uri.decodeFull(url);
-//         final uri = Uri.parse(decodedUrl);
-//         String fileName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'video_$i.mp4';
-//         fileName = fileName.split('%2F').last;
-//         String extension = p.extension(fileName).toLowerCase();
-
-//         if (!validVideoExtensions.contains(extension)) {
-//           extension = '.mp4';
-//         }
-
-//         fileName = p.basenameWithoutExtension(fileName)
-//             .replaceAll(RegExp(r'[^\w\-\.]'), '_') + extension;
-
-//         final filePath = p.join(appDir.path, fileName);
-//         final file = File(filePath);
-
-//         if (await file.exists()) {
-//           return file.path;
-//         }
-
-//         final response = await dio.download(
-//           url,
-//           filePath,
-//           options: Options(responseType: ResponseType.bytes),
-//         );
-
-//         if (response.statusCode == 200) {
-//           dev.log('✅ Downloaded: $fileName');
-//           return filePath;
-//         } else {
-//           dev.log('❌ Failed: $fileName (${response.statusCode})');
-//           return null;
-//         }
-//       } catch (e) {
-//         dev.log('⚠️ Error downloading $url: $e');
-//         return null;
-//       }
-//     }());
-//   }
-
-//   // Limit concurrency (e.g. 3–5 at a time to avoid overload)
-//   const int batchSize = 3;
-//   final localPaths = <String>[];
-
-//   for (int i = 0; i < futures.length; i += batchSize) {
-//     final batch = futures.skip(i).take(batchSize).toList();
-//     final results = await Future.wait(batch);
-//     localPaths.addAll(results.whereType<String>());
-//   }
-
-//     return localPaths;
-//   }
-
-// Make sure you register Dio in your service locator before calling this function
-// or simply replace `serviceLocator<Dio>()` with `Dio()` if not using dependency injection.
 
 static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async {
   if (videoUrls.isEmpty) return [];

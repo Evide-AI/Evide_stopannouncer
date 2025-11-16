@@ -116,6 +116,26 @@ class WebSocketServices {
       log('❌ Socket Connect Error: $data');
     });
 
+    // reconnect events
+    socket.onReconnect((attempt) {
+      log("🟢 Socket Reconnected after $attempt attempt(s)");
+      final busData = context.read<BusDataCubit>().state.busData;
+      final tripId = busData.activeTripTimelineModel?.tripDetails?.id;
+
+      if (tripId != null) {
+        log('🚍 Rejoining trip room after reconnect: $tripId');
+        socket.emit('join-trip', {'tripId': tripId});
+      }
+    });
+
+    socket.onReconnectAttempt((attempt) {
+      log("🔄 Reconnect attempt: $attempt");
+    });
+
+    socket.onReconnectError((err) {
+      log("❌ Reconnect error: $err");
+    });
+
     // connect the socket
     socket.connect(); // only once
   }

@@ -31,7 +31,7 @@ class BusDataCubit extends Cubit<BusDataState> {
       // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
       final res = await getBusDocDataUsecase(params: pairingCode ?? savedPairingCode ?? '');
       res.fold((failure) {
-        emit(BusDataErrorState(message: failure.message));
+        emit(state.copyWith(status: BusDataStatus.error, message: failure.message));
       }, (busdata) async {
         if (busdata != null) {
           // if (socket != null && audioPlayer != null && busdata.activeTripTimelineModel != null) {
@@ -52,7 +52,7 @@ class BusDataCubit extends Cubit<BusDataState> {
         }
       },);
     } catch (e) {
-      emit(BusDataErrorState(message: e.toString()));
+      emit(state.copyWith(status: BusDataStatus.error, message: e.toString()));
     }
   }
 

@@ -187,11 +187,11 @@ void _skipToNextOnError() async {
       ],
       child: BlocBuilder<BusDataCubit, BusDataState>(builder: (context, state) {
         if (state.status == BusDataStatus.loading || state.status == BusDataStatus.error) {
-          return adsPlayPageCommonLoadingWidget();
+          return commonLoadingWidget();
         }
 
         if (_betterPlayerController == null) {
-          return adsPlayPageCommonLoadingWidget();
+          return commonLoadingWidget();
         }
 
         return Scaffold(
