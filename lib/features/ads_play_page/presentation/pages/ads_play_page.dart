@@ -32,37 +32,14 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
   @override
   void initState() {
     super.initState();
+    initializeSocket();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BusDataCubit>().getBusData();
-      Future.delayed(const Duration(seconds: 10), () {
-        initializeSocket();
+      Future.delayed(const Duration(seconds: 2), () {
+        connectAndListenToSocket();
       });
     });
-    // context.read<BusDataCubit>().getBusData(audioPlayer: audioPlayer, socket: socket);
-    // Add a small delay to ensure socket is properly initialized
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   context.read<BusDataCubit>().getBusData(
-    //     audioPlayer: audioPlayer,
-    //     socket: socket
-    //   );
-    // });
-
   }
-
-  // initializeSocket() {
-  //   socket = io.io(
-  //     BackendConstants.webSocketUrl,
-  //     io.OptionBuilder()
-  //         .setTransports(['websocket', 'polling'])
-  //         .setPath('/socket.io/')
-  //         .enableReconnection()
-  //         .setReconnectionDelay(1000)
-  //         .setReconnectionDelayMax(5000)
-  //         .setReconnectionAttempts(20)
-  //         .setTimeout(60000)
-  //         .build(),
-  //   );
-  // }
 
   initializeSocket() {
     socket = io.io(
@@ -77,7 +54,9 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
           .setTimeout(60000)
           .build(),
     );
+  }
 
+  connectAndListenToSocket() {
     // on connection established join the trip room
     socket.onConnect((_) {
       final busData = context.read<BusDataCubit>().state.busData;
@@ -125,7 +104,17 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
               // PLAY AUDIO
               final audioUrl = context.read<BusDataCubit>().state.busData.stopAudios?[stop.stopId.toString()];
               if (audioUrl != null) {
+                /// 🔇 Mute video before playing stop audio
+                _betterPlayerController?.videoPlayerController?.setVolume(0.0);
+
                 audioPlayer.play(UrlSource(audioUrl));
+
+                /// 🟢 When stop audio completes – restore video volume
+                Future.delayed(Duration(seconds: 1), () {
+                  audioPlayer.onPlayerComplete.listen((event) {
+                    _betterPlayerController?.videoPlayerController?.setVolume(0.01);
+                  });
+                },);
               }
 
               // SHOW DIALOG
@@ -199,7 +188,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
       betterPlayerDataSource: dataSource,
     );
 
-    _betterPlayerController?.setVolume(audioPlayer.state == PlayerState.playing ? 0.0 : 0.1);
+    _betterPlayerController?.setVolume(0.01);
     setState(() {});
   } catch (e) {
     log("Error initializing video: $e");
