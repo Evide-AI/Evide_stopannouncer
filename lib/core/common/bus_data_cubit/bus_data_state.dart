@@ -31,23 +31,3 @@ class BusDataState extends Equatable {
 }
 
 final class BusDataCubitInitial extends BusDataState {}
-// class BustDataLoadingState extends BusDataState {}
-
-// class BusDataLoadedState extends BusDataState {
-//   final BusDataEntity busData;
-//   final List<String> localVideoPaths;
-
-//   const BusDataLoadedState({required this.busData, this.localVideoPaths = const []});
-
-//   @override
-//   List<Object> get props => [busData, localVideoPaths];
-// }
-
-class BusDataErrorState extends BusDataState {
-  final String message;
-
-  const BusDataErrorState({required this.message});
-
-  @override
-  List<Object> get props => [message];
-}
