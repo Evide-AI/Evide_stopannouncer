@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
@@ -25,6 +24,27 @@ class WebSocketServices {
       }
     });
 
+    // when new trip starts
+    socket.on("trip-started", (data) {
+      log("🚍 Trip Started: $data");
+
+      try {
+        final tripId = data?['tripId'];
+        if (tripId != null) {
+          // Fetch new trip data
+          // context.read<BusDataCubit>().getBusData();
+
+          // Join the new trip room
+          socket.emit("join-trip", {"tripId": tripId});
+
+          // Reset last shown stop, so new trip announcements work properly
+          lastShownStopSequence = null;
+        }
+      } catch (e) {
+        log('❌ Error in trip-started event: $e');
+      }
+    });
+
     // if joined trip
     socket.on('joined-trip', (data) => log('✅ Joined trip: $data'));
 
@@ -35,8 +55,6 @@ class WebSocketServices {
       if (data != null && data['tripId'] != null) {
         socket.emit("leave-trip", {"tripId": data['tripId']});
       }
-      // Fetch new bus data
-      context.read<BusDataCubit>().getBusData();
     });
 
     // if disconnected
