@@ -32,9 +32,11 @@ class _AdsPlayPageState extends State<AdsPlayPage> {
   @override
   void initState() {
     super.initState();
-    context.read<BusDataCubit>().getBusData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      initializeSocket();
+      context.read<BusDataCubit>().getBusData();
+      Future.delayed(const Duration(seconds: 10), () {
+        initializeSocket();
+      });
     });
     // context.read<BusDataCubit>().getBusData(audioPlayer: audioPlayer, socket: socket);
     // Add a small delay to ensure socket is properly initialized
