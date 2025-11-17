@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 Future<dynamic> currentStopDataShowingDialog({
   required BuildContext context,
   required String stopName,
+  required bool isAudioPresent,
 }) async {
   // Show the dialog
   final dialogFuture = showGeneralDialog(
@@ -113,7 +114,7 @@ Future<dynamic> currentStopDataShowingDialog({
   );
 
   // Automatically close after 10 seconds
-  Future.delayed(const Duration(seconds: 5), () {
+  Future.delayed(const Duration(seconds: isAudioPresent ? 5 : 3), () {
     if (context.mounted) {
       if (Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
