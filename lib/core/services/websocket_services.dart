@@ -98,6 +98,7 @@ class WebSocketServices {
 
               // SHOW DIALOG
               currentStopDataShowingDialog(
+                isAudioPresent: audioUrl != null,
                 context:
                     AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
                 stopName: stop.stopName ?? 'Unknown Stop',
