@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:installed_apps/app_info.dart';
+import 'package:installed_apps/installed_apps.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 class AppCommonMethods {
@@ -133,5 +135,13 @@ static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async 
   return localPaths;
 }
 
+  static Future<List<AppInfo>> getAllInstalledApps() async {
+    List<AppInfo> apps = await InstalledApps.getInstalledApps(
+      excludeSystemApps: false,
+      excludeNonLaunchableApps: true,
+      withIcon: true,
+    );
+    return apps;
+  }
 
 }
