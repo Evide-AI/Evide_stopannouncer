@@ -114,7 +114,7 @@ Future<dynamic> currentStopDataShowingDialog({
   );
 
   // Automatically close after 10 seconds
-  Future.delayed(const Duration(seconds: isAudioPresent ? 5 : 3), () {
+  Future.delayed(Duration(seconds: isAudioPresent ? 5 : 3), () {
     if (context.mounted) {
       if (Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
