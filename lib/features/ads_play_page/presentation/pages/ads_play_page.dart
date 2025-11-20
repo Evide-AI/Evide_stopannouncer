@@ -10,6 +10,7 @@ import 'package:evide_stop_announcer_app/core/services/kiosk_mode_service.dart';
 import 'package:evide_stop_announcer_app/core/services/websocket_services.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:evide_stop_announcer_app/features/install_app_list_page/installed_apps_list_page.dart';
+import 'package:evide_stop_announcer_app/features/install_app_list_page/settings_open_option_selection_page.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -199,12 +200,11 @@ void _skipToNextOnError() async {
     }
 
     if (inputCode == AppGlobalKeys.appAdminAccessSecretKey) {
-      final installedApps = await AppCommonMethods.getAllInstalledApps();
       if (mounted) {
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) {
-              return InstalledAppsListPage(installedApps: installedApps);
+              return SettingsOpenOptionSelectionPage();
             },
           ),
         );

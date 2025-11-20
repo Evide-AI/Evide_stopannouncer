@@ -23,86 +23,90 @@ class _InstalledAppWidgetState extends State<InstalledAppWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return FocusableActionDetector(
-      autofocus: false,
-      onShowFocusHighlight: (focused) {
-        setState(() {
-          isFocused = focused;
-        });
+    return GestureDetector(
+      onTap: () async {
+        print("Pacakage name: ${widget.app.packageName}");
+        await InstalledApps.startApp(widget.app.packageName);
       },
-      onFocusChange: (focused) {
-        setState(() {
-          isFocused = focused;
-        });
-      },
-      actions: {
-        ActivateIntent: CallbackAction<Intent>(
-          onInvoke: (intent) async {
-            // widget.onLaunch();
-            await InstalledApps.startApp(widget.app.packageName);
-            return null;
-          },
-        )
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isFocused ? Colors.blue : Colors.transparent,
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 5,
-                  offset: const Offset(0, 2),
+      child: FocusableActionDetector(
+        autofocus: false,
+        onShowFocusHighlight: (focused) {
+          setState(() {
+            isFocused = focused;
+          });
+        },
+        onFocusChange: (focused) {
+          setState(() {
+            isFocused = focused;
+          });
+        },
+        actions: {
+          ActivateIntent: CallbackAction<Intent>(
+            onInvoke: (intent) async {
+              return null;
+            },
+          )
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isFocused ? Colors.blue : Colors.transparent,
+                  width: 2,
                 ),
-              ],
-            ),
-            child: widget.appIcon != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      12,
-                    ),
-                    child: Image.memory(
-                      widget.appIcon!, // first argument
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.broken_image,
-                              size: 40,
-                              color: Colors.white70,
-                            );
-                          },
-                    ),
-                  )
-                : const Icon(
-                    Icons.apps,
-                    color: Colors.white70,
-                    size: 35,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
                   ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            widget.app.name,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
+                ],
+              ),
+              child: widget.appIcon != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        12,
+                      ),
+                      child: Image.memory(
+                        widget.appIcon!, // first argument
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.broken_image,
+                                size: 40,
+                                color: Colors.white70,
+                              );
+                            },
+                      ),
+                    )
+                  : const Icon(
+                      Icons.apps,
+                      color: Colors.white70,
+                      size: 35,
+                    ),
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(height: 5),
+            Text(
+              widget.app.name,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

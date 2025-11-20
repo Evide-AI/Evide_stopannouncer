@@ -52,6 +52,7 @@ dependencies:
   installed_apps: ^2.0.0
   kiosk_mode: ^0.7.0+1
   crypto: ^3.0.7
+  android_intent_plus: ^6.0.0
 
 
 dev_dependencies:

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:developer' as dev;
 import 'dart:io';
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/services/api_service.dart';
@@ -52,90 +53,6 @@ class AppCommonMethods {
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
-
-
-// static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async {
-//   if (videoUrls.isEmpty) return [];
-
-//   final appDir = await getApplicationDocumentsDirectory();
-//   const validVideoExtensions = {
-//     '.mp4', '.webm', '.mov', '.mkv', '.avi',
-//     '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
-//   };
-
-//   final dio = serviceLocator<Dio>(); // or just Dio();
-
-//   // We'll use Future batches to avoid overloading
-//   final List<Future<String?>> downloadFutures = [];
-
-//   for (int i = 0; i < videoUrls.length; i++) {
-//     final url = videoUrls[i];
-//     downloadFutures.add(() async {
-//       try {
-//         // ⚠️ Don’t decode Firebase URLs — just parse directly
-//         final uri = Uri.parse(url);
-
-//         // Extract clean file name
-//         String fileName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'video_$i.mp4';
-//         fileName = fileName.split('%2F').last; // keep last part if URL encoded
-//         String extension = p.extension(fileName).toLowerCase();
-
-//         // Validate extension
-//         if (!validVideoExtensions.contains(extension)) {
-//           extension = '.mp4';
-//         }
-
-//         // Sanitize file name
-//         fileName = p.basenameWithoutExtension(fileName)
-//                 .replaceAll(RegExp(r'[^\w\-\.]'), '_') +
-//             extension;
-
-//         final filePath = p.join(appDir.path, fileName);
-//         final file = File(filePath);
-
-//         // If file already exists and not empty, skip re-download
-//         if (await file.exists() && await file.length() > 0) {
-//           debugPrint('📁 Using cached video: $fileName');
-//           return file.path;
-//         }
-
-//         debugPrint('⬇️ Downloading: $url');
-
-//         final response = await dio.download(
-//           url,
-//           filePath,
-//           options: Options(responseType: ResponseType.bytes),
-//         );
-
-//         // Verify successful download
-//         if (response.statusCode == 200 && await file.length() > 0) {
-//           debugPrint('✅ Downloaded: $fileName (${await file.length()} bytes)');
-//           return file.path;
-//         } else {
-//           debugPrint('❌ Failed: $fileName (status: ${response.statusCode})');
-//           await file.delete().catchError((_) {});
-//           return null;
-//         }
-//       } catch (e, st) {
-//         debugPrint('⚠️ Error downloading $url: $e');
-//         return null;
-//       }
-//     }());
-//   }
-
-//   // Process downloads in small batches (to prevent network overload)
-//   const int batchSize = 3;
-//   final localPaths = <String>[];
-
-//   for (int i = 0; i < downloadFutures.length; i += batchSize) {
-//     final batch = downloadFutures.skip(i).take(batchSize).toList();
-//     final results = await Future.wait(batch);
-//     localPaths.addAll(results.whereType<String>());
-//   }
-
-//   dev.log('🎬 All downloaded videos: $localPaths');
-//   return localPaths;
-// }
 
   static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async {
   if (videoUrls.isEmpty) return [];
@@ -252,10 +169,52 @@ class AppCommonMethods {
   static Future<List<AppInfo>> getAllInstalledApps() async {
     List<AppInfo> apps = await InstalledApps.getInstalledApps(
       excludeSystemApps: false,
-      excludeNonLaunchableApps: true,
+      excludeNonLaunchableApps: false,
       withIcon: true,
     );
     return apps;
   }
 
+
+
+  static Future<void> openSystemSettings() async {
+    try {
+      // --- 1. Try opening Android TV Settings (most common TV devices)
+      const tvIntent = AndroidIntent(
+        action: 'android.intent.action.MAIN',
+        category: 'android.intent.category.LAUNCHER',
+        package: 'com.android.tv.settings',
+        componentName: 'com.android.tv.settings.MainSettings',
+      );
+      await tvIntent.launch();
+      return;
+    } catch (_) {}
+
+    try {
+      // --- 2. Try opening generic TV Settings Activity
+      const tvIntentAlt = AndroidIntent(
+        action: 'android.intent.action.MAIN',
+        package: 'com.android.tv.settings',
+        componentName: 'com.android.tv.settings.SettingsActivity',
+      );
+      await tvIntentAlt.launch();
+      return;
+    } catch (_) {}
+
+    try {
+      // --- 3. Try opening regular Android Settings (works on ALL devices)
+      const standardIntent = AndroidIntent(
+        action: 'android.settings.SETTINGS',
+      );
+      await standardIntent.launch();
+      return;
+    } catch (_) {}
+
+    // --- 4. Final fallback: Open app details as last resort
+    const fallbackIntent = AndroidIntent(
+      action: 'android.settings.APPLICATION_DETAILS_SETTINGS',
+      data: 'package:android',
+    );
+    await fallbackIntent.launch();
+  }
 }
