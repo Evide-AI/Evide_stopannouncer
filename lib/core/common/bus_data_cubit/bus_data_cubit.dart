@@ -12,13 +12,17 @@ part 'bus_data_state.dart';
 class BusDataCubit extends Cubit<BusDataState> {
   final GetBusDocDataUsecase getBusDocDataUsecase;
   final GetActiveTripDataUsecase getActiveTripDataUsecase;
+  final StreamBusVideosUsecase streamBusVideosUsecase;
   final Dio dio;
   List<String> localVideoPaths = [];
   BusDataCubit({
     required this.getBusDocDataUsecase,
     required this.dio,
     required this.getActiveTripDataUsecase,
+    required this.streamBusVideosUsecase,
   }) : super(BusDataCubitInitial());
+
+  StreamSubscription? _videoStreamSub;
 
   // Method for getting bus data (including bus name, no, ad_videos and stop_audios)
   void getBusData({String? pairingCode}) async{
@@ -50,6 +54,48 @@ class BusDataCubit extends Cubit<BusDataState> {
       },);
     } catch (e) {
       emit(state.copyWith(status: BusDataStatus.error, message: e.toString()));
+    }
+  }
+
+  void getVideosToPlay({String? busPairingCode}) {
+    try {
+      String? pairingCode = SharedPrefsServices.getPairingCode() ?? busPairingCode;
+      if (pairingCode != null) {
+        // Cancel existing stream if already listening
+        _videoStreamSub?.cancel();
+
+        // Start listening to video stream
+        _videoStreamSub = streamBusVideosUsecase(params: pairingCode).listen(
+          (either) async {
+            await either.fold(
+              // Failure
+              (failure) {
+                emit(state.copyWith(
+                  status: BusDataStatus.error,
+                  message: failure.message,
+                ));
+              },
+
+              // Success
+              (videos) async {
+                // Download videos to local storage
+                localVideoPaths =
+                    await AppCommonMethods.downloadVideosToLocal(videos);
+
+                // Emit updated paths
+                emit(state.copyWith(
+                  localVideoPaths: localVideoPaths,
+                  status: BusDataStatus.loaded,
+                ));
+              },
+            );
+          },
+        );
+      }
+    } catch (e) {
+      emit(state.copyWith(
+        message: e.toString(),
+      ));
     }
   }
 
