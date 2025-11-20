@@ -74,4 +74,16 @@ class ApiService {
         isNeedToWait: isNeedToWait,
       );
   }
+
+  Future<Response?> download({
+    required String urlPath,
+    required String savePath,
+    Options? options,
+  }) {
+    return apiCore.download(
+      urlPath: urlPath,
+      savePath: savePath,
+      options: options,
+    );
+  }
 }

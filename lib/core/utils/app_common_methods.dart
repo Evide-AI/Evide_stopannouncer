@@ -3,6 +3,7 @@ import 'dart:developer' as dev;
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
+import 'package:evide_stop_announcer_app/core/services/api_service.dart';
 import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:installed_apps/app_info.dart';
@@ -185,17 +186,17 @@ class AppCommonMethods {
 
         debugPrint("⬇️ Downloading: $url");
 
-        final response = await dio.download(
-          url,
-          filePath,
+        final response = await serviceLocator<ApiService>().download(
+          urlPath:  url,
+          savePath: filePath,
           options: Options(responseType: ResponseType.bytes),
         );
 
         // ---------------------------
         // 3️⃣ Validate downloaded file
         // ---------------------------
-        if (response.statusCode != 200) {
-          debugPrint("❌ Invalid status: ${response.statusCode}");
+        if (response?.statusCode != 200) {
+          debugPrint("❌ Invalid status: ${response?.statusCode}");
           await file.delete().catchError((_) {});
           return null;
         }

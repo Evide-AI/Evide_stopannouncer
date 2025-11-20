@@ -74,4 +74,23 @@ class ApiCore {
       return null;
     }
   }
+
+  Future<Response?> download({
+    required String urlPath,
+    required String savePath,
+    Options? options,
+  }) async {
+    try {
+
+      Response response = await dio.download(
+        urlPath,
+        savePath,
+        options: options,
+      );
+      return response;
+    } on DioException catch (e) {
+      debugPrint("DioException From Post: ${e.toString()}");
+      return null;
+    }
+  }
 }
