@@ -7,6 +7,7 @@ import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 class AppCommonMethods {
@@ -52,7 +53,90 @@ class AppCommonMethods {
   }
 
 
-static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async {
+// static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async {
+//   if (videoUrls.isEmpty) return [];
+
+//   final appDir = await getApplicationDocumentsDirectory();
+//   const validVideoExtensions = {
+//     '.mp4', '.webm', '.mov', '.mkv', '.avi',
+//     '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
+//   };
+
+//   final dio = serviceLocator<Dio>(); // or just Dio();
+
+//   // We'll use Future batches to avoid overloading
+//   final List<Future<String?>> downloadFutures = [];
+
+//   for (int i = 0; i < videoUrls.length; i++) {
+//     final url = videoUrls[i];
+//     downloadFutures.add(() async {
+//       try {
+//         // ⚠️ Don’t decode Firebase URLs — just parse directly
+//         final uri = Uri.parse(url);
+
+//         // Extract clean file name
+//         String fileName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'video_$i.mp4';
+//         fileName = fileName.split('%2F').last; // keep last part if URL encoded
+//         String extension = p.extension(fileName).toLowerCase();
+
+//         // Validate extension
+//         if (!validVideoExtensions.contains(extension)) {
+//           extension = '.mp4';
+//         }
+
+//         // Sanitize file name
+//         fileName = p.basenameWithoutExtension(fileName)
+//                 .replaceAll(RegExp(r'[^\w\-\.]'), '_') +
+//             extension;
+
+//         final filePath = p.join(appDir.path, fileName);
+//         final file = File(filePath);
+
+//         // If file already exists and not empty, skip re-download
+//         if (await file.exists() && await file.length() > 0) {
+//           debugPrint('📁 Using cached video: $fileName');
+//           return file.path;
+//         }
+
+//         debugPrint('⬇️ Downloading: $url');
+
+//         final response = await dio.download(
+//           url,
+//           filePath,
+//           options: Options(responseType: ResponseType.bytes),
+//         );
+
+//         // Verify successful download
+//         if (response.statusCode == 200 && await file.length() > 0) {
+//           debugPrint('✅ Downloaded: $fileName (${await file.length()} bytes)');
+//           return file.path;
+//         } else {
+//           debugPrint('❌ Failed: $fileName (status: ${response.statusCode})');
+//           await file.delete().catchError((_) {});
+//           return null;
+//         }
+//       } catch (e, st) {
+//         debugPrint('⚠️ Error downloading $url: $e');
+//         return null;
+//       }
+//     }());
+//   }
+
+//   // Process downloads in small batches (to prevent network overload)
+//   const int batchSize = 3;
+//   final localPaths = <String>[];
+
+//   for (int i = 0; i < downloadFutures.length; i += batchSize) {
+//     final batch = downloadFutures.skip(i).take(batchSize).toList();
+//     final results = await Future.wait(batch);
+//     localPaths.addAll(results.whereType<String>());
+//   }
+
+//   dev.log('🎬 All downloaded videos: $localPaths');
+//   return localPaths;
+// }
+
+  static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async {
   if (videoUrls.isEmpty) return [];
 
   final appDir = await getApplicationDocumentsDirectory();
@@ -61,43 +145,45 @@ static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async 
     '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
   };
 
-  final dio = serviceLocator<Dio>(); // or just Dio();
+  final dio = serviceLocator<Dio>();
 
-  // We'll use Future batches to avoid overloading
   final List<Future<String?>> downloadFutures = [];
 
   for (int i = 0; i < videoUrls.length; i++) {
     final url = videoUrls[i];
+
     downloadFutures.add(() async {
       try {
-        // ⚠️ Don’t decode Firebase URLs — just parse directly
         final uri = Uri.parse(url);
 
-        // Extract clean file name
-        String fileName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'video_$i.mp4';
-        fileName = fileName.split('%2F').last; // keep last part if URL encoded
-        String extension = p.extension(fileName).toLowerCase();
+        // ---------------------------
+        // 1️⃣ Generate stable filename using MD5 hash (prevents duplicate downloads)
+        // ---------------------------
+        final hashedName = md5.convert(uri.path.codeUnits).toString();
 
-        // Validate extension
-        if (!validVideoExtensions.contains(extension)) {
-          extension = '.mp4';
+        String originalName =
+            uri.pathSegments.isNotEmpty ? uri.pathSegments.last : "video_$i.mp4";
+        originalName = originalName.split("%2F").last;
+
+        String ext = p.extension(originalName).toLowerCase();
+        if (!validVideoExtensions.contains(ext)) {
+          ext = ".mp4";
         }
 
-        // Sanitize file name
-        fileName = p.basenameWithoutExtension(fileName)
-                .replaceAll(RegExp(r'[^\w\-\.]'), '_') +
-            extension;
+        final fileName = "$hashedName$ext";
 
         final filePath = p.join(appDir.path, fileName);
         final file = File(filePath);
 
-        // If file already exists and not empty, skip re-download
-        if (await file.exists() && await file.length() > 0) {
-          debugPrint('📁 Using cached video: $fileName');
-          return file.path;
+        // ---------------------------
+        // 2️⃣ Use cached file if exists & valid
+        // ---------------------------
+        if (await file.exists() && await file.length() > 1024) {
+          debugPrint("📁 Using cached video: $fileName");
+          return filePath;
         }
 
-        debugPrint('⬇️ Downloading: $url');
+        debugPrint("⬇️ Downloading: $url");
 
         final response = await dio.download(
           url,
@@ -105,23 +191,47 @@ static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async 
           options: Options(responseType: ResponseType.bytes),
         );
 
-        // Verify successful download
-        if (response.statusCode == 200 && await file.length() > 0) {
-          debugPrint('✅ Downloaded: $fileName (${await file.length()} bytes)');
-          return file.path;
-        } else {
-          debugPrint('❌ Failed: $fileName (status: ${response.statusCode})');
+        // ---------------------------
+        // 3️⃣ Validate downloaded file
+        // ---------------------------
+        if (response.statusCode != 200) {
+          debugPrint("❌ Invalid status: ${response.statusCode}");
           await file.delete().catchError((_) {});
           return null;
         }
-      } catch (e, st) {
-        debugPrint('⚠️ Error downloading $url: $e');
+
+        // Ensure file exists and is not corrupted (min 1 KB)
+        final length = await file.length();
+        if (length < 1024) {
+          debugPrint("❌ Video too small (corrupt or invalid): $fileName ($length bytes)");
+          await file.delete().catchError((_) {});
+          return null;
+        }
+
+        // Optional deeper check: ensure file starts with video-like binary bytes
+        // (mp4 usually starts with ftyp)
+        final headerBytes = await file.openRead(0, 12).first;
+        final headerStr = String.fromCharCodes(headerBytes);
+        if (!headerStr.contains("ftyp") &&
+            !headerStr.contains("moov") &&
+            !headerStr.contains("mdat")) {
+          debugPrint("❌ Invalid video header → deleting file: $fileName");
+          await file.delete().catchError((_) {});
+          return null;
+        }
+
+        debugPrint("✅ Valid video saved: $fileName ($length bytes)");
+        return filePath;
+      } catch (e) {
+        debugPrint("⚠️ Error downloading $url: $e");
         return null;
       }
     }());
   }
 
-  // Process downloads in small batches (to prevent network overload)
+  // ---------------------------
+  // 4️⃣ Process in batches
+  // ---------------------------
   const int batchSize = 3;
   final localPaths = <String>[];
 
@@ -131,7 +241,7 @@ static Future<List<String>> downloadVideosToLocal(List<String> videoUrls) async 
     localPaths.addAll(results.whereType<String>());
   }
 
-  dev.log('🎬 All downloaded videos: $localPaths');
+  dev.log("🎬 All downloaded valid videos: $localPaths");
   return localPaths;
 }
 
