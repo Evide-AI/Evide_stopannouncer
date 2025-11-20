@@ -4,6 +4,8 @@ import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_
 import 'package:evide_stop_announcer_app/core/constants/db_constants.dart';
 import 'package:evide_stop_announcer_app/core/failure/failure.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data/model/bus_data_model.dart';
+import 'package:evide_stop_announcer_app/core/services/api_service.dart';
+import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data/model/active_trip_data_model.dart';
@@ -63,7 +65,7 @@ class BusDataImpl implements BusData {
                 if (activeTrip.tripId != null) {
                     final timelineResponse = await serviceLocator<ApiService>().get(url: "${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
                     final apiResponse = ApiResponse.fromJson(
-                      json: timelineResponse.data,
+                      json: timelineResponse?.data,
                       fromDataJson: (data) {
                         return TimeLineModel.fromJson(data);
                       },
@@ -93,7 +95,7 @@ class BusDataImpl implements BusData {
   Future<List<ActiveTripDataModel>> getAllTripsByBusId({required int busId, int pageNo = 1}) async {
     try {
       final response = await serviceLocator<ApiService>().get(url: "${BackendConstants.baseUrl}${ApiEndpoint.getTripsByBusId(busId: busId, pageNo: pageNo)}");
-      final apiResponse = ApiResponse.fromJson(json: response.data, fromDataJson: (data) {
+      final apiResponse = ApiResponse.fromJson(json: response?.data, fromDataJson: (data) {
         return (data["trips"] as List).map((e) {
           return ActiveTripDataModel.fromJson(e);
         },);
@@ -122,7 +124,7 @@ class BusDataImpl implements BusData {
           if (activeTrip.tripId != null) {
             final timelineResponse = await serviceLocator<ApiService>().get(url: "${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
             final apiResponse = ApiResponse.fromJson(
-              json: timelineResponse.data,
+              json: timelineResponse?.data,
               fromDataJson: (data) {
                 return TimeLineModel.fromJson(data);
               },

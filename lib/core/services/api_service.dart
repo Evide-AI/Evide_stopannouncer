@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/network_connection/connection_checker.dart';
-import 'package:evide_stop_announcer_app/core/services/api_services/api_core.dart';
+import 'package:evide_stop_announcer_app/core/services/api_core.dart';
 
 class ApiService {
 
