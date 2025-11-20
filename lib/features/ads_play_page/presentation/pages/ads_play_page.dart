@@ -242,7 +242,6 @@ void _skipToNextOnError() async {
             if (state.localVideoPaths.isNotEmpty) {
               _videoList = state.localVideoPaths;
             }
-      
             // Start streaming video updates
             if (mounted) {
               context.read<BusDataCubit>().getVideosToPlay();
@@ -254,26 +253,14 @@ void _skipToNextOnError() async {
           if (state.status == BusDataStatus.loading || state.status == BusDataStatus.error) {
             return commonLoadingWidget();
           }
-      
           if (_betterPlayerController == null) {
             return commonLoadingWidget();
           }
-      
           return Scaffold(
             body: Center(
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: BetterPlayer(controller: _betterPlayerController!),
-              ),
-            ),
-            floatingActionButton: TextButton(
-              onPressed: () {
-                // For testing: Skip to next video
-                KioskModeService.disableKioskMode();
-              },
-              child: Text(
-                "Exit Kiosk Mode",
-                style: TextStyle(color: Colors.redAccent),
               ),
             ),
           );
