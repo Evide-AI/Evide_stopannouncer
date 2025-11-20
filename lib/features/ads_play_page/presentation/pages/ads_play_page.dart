@@ -246,7 +246,9 @@ void _skipToNextOnError() async {
             }
       
             // Start streaming video updates
-            context.read<BusDataCubit>().getVideosToPlay();
+            if (mounted) {
+              context.read<BusDataCubit>().getVideosToPlay();
+            }
             }
           },),
         ],
