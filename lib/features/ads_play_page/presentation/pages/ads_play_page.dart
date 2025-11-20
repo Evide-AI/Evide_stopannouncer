@@ -227,12 +227,6 @@ void _skipToNextOnError() async {
         listeners: [
           BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
             if (state.status == BusDataStatus.loaded) {
-              if (state.busData.activeTripTimelineModel?.tripDetails?.id != null) {
-                log('🚍 Joining trip: ${state.busData.activeTripTimelineModel?.tripDetails?.id}');
-                socket.emit('join-trip', {'tripId': state.busData.activeTripTimelineModel?.tripDetails?.id});
-              }
-              // here if state is BusDataLoadedState, we can connect to socket after getting active trip data
-              // context.read<BusDataCubit>().getActiveTrip(busId: state.busData.busId ?? 0, socket: socket, audioPlayer: audioPlayer);
               // initialize video player with first video
             if (state.busData.adVideos?.isNotEmpty ?? false) {
                 _videoList = state.localVideoPaths; // Store all video paths

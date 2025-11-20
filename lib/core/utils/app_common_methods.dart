@@ -146,8 +146,6 @@ class AppCommonMethods {
     '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
   };
 
-  final dio = serviceLocator<Dio>();
-
   final List<Future<String?>> downloadFutures = [];
 
   for (int i = 0; i < videoUrls.length; i++) {
