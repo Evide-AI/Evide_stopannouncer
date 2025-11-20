@@ -22,6 +22,7 @@ class AdsPlayPage extends StatefulWidget {
 }
 
 class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
+  late FocusNode _focusNode;
   BetterPlayerController? _betterPlayerController;
   AudioPlayer audioPlayer = AudioPlayer();
   String inputCode = "";
@@ -33,10 +34,12 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     WidgetsBinding.instance.addObserver(this);
     _ensureKioskMode();
     initializeSocket();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
       context.read<BusDataCubit>().getBusData();
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
@@ -102,6 +105,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
     socket.disconnect();
     socket.dispose();
     audioPlayer.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -213,7 +217,7 @@ void _skipToNextOnError() async {
   Widget build(BuildContext context) {
     return KeyboardListener(
       autofocus: true,
-      focusNode: FocusNode(),
+      focusNode: _focusNode,
       onKeyEvent: (event) {
         // Only handle key down events
         if (event is KeyDownEvent) {
