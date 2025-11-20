@@ -239,6 +239,14 @@ void _skipToNextOnError() async {
                 currentVideoIndex = 0;
                 await initializeVideo(index: currentVideoIndex);
               }
+
+            // Update video list if stream updates
+            if (state.localVideoPaths.isNotEmpty) {
+              _videoList = state.localVideoPaths;
+            }
+      
+            // Start streaming video updates
+            context.read<BusDataCubit>().getVideosToPlay();
             }
           },),
         ],
