@@ -189,7 +189,12 @@ class AppCommonMethods {
         final response = await serviceLocator<ApiService>().download(
           urlPath:  url,
           savePath: filePath,
-          options: Options(responseType: ResponseType.bytes),
+          options: Options(
+            responseType: ResponseType.bytes,
+            extra: {
+            "isNeedToWait": true,
+          },
+          ),
         );
 
         // ---------------------------
