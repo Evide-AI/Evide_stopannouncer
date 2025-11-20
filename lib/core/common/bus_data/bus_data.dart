@@ -61,7 +61,7 @@ class BusDataImpl implements BusData {
               if(activeTrips.isNotEmpty){
                 final activeTrip = activeTrips.first;
                 if (activeTrip.tripId != null) {
-                    final timelineResponse = await dio.get("${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
+                    final timelineResponse = await serviceLocator<ApiService>().get(url: "${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
                     final apiResponse = ApiResponse.fromJson(
                       json: timelineResponse.data,
                       fromDataJson: (data) {
@@ -92,7 +92,7 @@ class BusDataImpl implements BusData {
   // method to get all trips by bus id
   Future<List<ActiveTripDataModel>> getAllTripsByBusId({required int busId, int pageNo = 1}) async {
     try {
-      final response = await dio.get("${BackendConstants.baseUrl}${ApiEndpoint.getTripsByBusId(busId: busId, pageNo: pageNo)}");
+      final response = await serviceLocator<ApiService>().get(url: "${BackendConstants.baseUrl}${ApiEndpoint.getTripsByBusId(busId: busId, pageNo: pageNo)}");
       final apiResponse = ApiResponse.fromJson(json: response.data, fromDataJson: (data) {
         return (data["trips"] as List).map((e) {
           return ActiveTripDataModel.fromJson(e);
@@ -120,7 +120,7 @@ class BusDataImpl implements BusData {
           final activeTrip = activeTrips.first;
           // if active trip found, get timeline data
           if (activeTrip.tripId != null) {
-            final timelineResponse = await dio.get("${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
+            final timelineResponse = await serviceLocator<ApiService>().get(url: "${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
             final apiResponse = ApiResponse.fromJson(
               json: timelineResponse.data,
               fromDataJson: (data) {
