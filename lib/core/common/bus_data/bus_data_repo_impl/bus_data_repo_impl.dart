@@ -37,4 +37,18 @@ class BusDataRepoImpl implements BusDataRepo{
     }
   }
 
+  @override
+  Stream<Either<Failure, List<String>>> streamBusVideos({
+    required String busPairingCode,
+  }) {
+    try {
+      return busData.streamBusVideos(busPairingCode: busPairingCode)
+          .map((videos) {
+        return Right(videos);
+      });
+    } catch (e) {
+      return Stream.value(Left(Failure(message: e.toString())));
+    }
+  }
+
 }
