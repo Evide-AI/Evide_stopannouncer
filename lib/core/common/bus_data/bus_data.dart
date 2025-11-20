@@ -14,6 +14,7 @@ import 'package:evide_stop_announcer_app/core/services/api_reponse.dart';
 abstract class BusData {
   Future<BusDataEntity?> getBusDocData({required String busPairingCode});
   Future<TimeLineModel> getActiveTripData({required int busId});
+  Stream<List<String>> streamBusVideos({required String busPairingCode});
 }
 
 class BusDataImpl implements BusData {
