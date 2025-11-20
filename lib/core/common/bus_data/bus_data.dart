@@ -21,6 +21,27 @@ class BusDataImpl implements BusData {
   final Dio dio;
 
   BusDataImpl({required this.firebaseFirestore, required this.dio});
+
+  @override
+  Stream<List<String>> streamBusVideos({required String busPairingCode}) {
+    try {
+      return firebaseFirestore
+        .collection(DbConstants.busesCollection)
+        .doc(busPairingCode)
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists || doc.data() == null) return [];
+
+          final data = doc.data()!;
+          return data[DbConstants.adVideos] != null
+              ? List<String>.from(data[DbConstants.adVideos])
+              : [];
+        });
+    } catch (e) {
+      return [] as Stream<List<String>>;
+    }
+  }
+  
   // method to get bus document data by pairing code
   @override
   Future<BusDataEntity?> getBusDocData({required String busPairingCode}) async {
