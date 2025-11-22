@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:audioplayers/audioplayers.dart';
@@ -11,37 +12,20 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 
 class WebSocketServices {
   static int? lastShownStopSequence;
+  static Timer? tripCheckerTimer;
+  static int? currentActiveTripId;
+
 
   static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required AudioPlayer audioPlayer}) {
     // on connection established join the trip room
     socket.onConnect((_) {
       final busData = context.read<BusDataCubit>().state.busData;
       log('🟢 Socket Connected: ${socket.id}');
+      startTripWatcher(context: context, socket: socket);
       final tripId = busData.activeTripTimelineModel?.tripDetails?.id;
       if (tripId != null) {
         log('🚍 Joining trip: $tripId');
         socket.emit('join-trip', {'tripId': tripId});
-      }
-    });
-
-    // when new trip starts
-    socket.on("trip-started", (data) {
-      log("🚍 Trip Started: $data");
-
-      try {
-        final tripId = data?['tripId'];
-        if (tripId != null) {
-          // Fetch new trip data
-          context.read<BusDataCubit>().getBusData();
-
-          // Join the new trip room
-          socket.emit("join-trip", {"tripId": tripId});
-
-          // Reset last shown stop, so new trip announcements work properly
-          lastShownStopSequence = null;
-        }
-      } catch (e) {
-        log('❌ Error in trip-started event: $e');
       }
     });
 
@@ -127,7 +111,7 @@ class WebSocketServices {
             final nextStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[nextStop?.stopId?.toString()];
 
             // After 10 seconds → play NEXT stop audio & dialog
-            Future.delayed(const Duration(seconds: 30), () {
+            Future.delayed(const Duration(seconds: 20), () {
               log("🎵 Next Stop Audio: $nextStopAudio");
 
               // Play NEXT audio
@@ -179,4 +163,41 @@ class WebSocketServices {
       log("❌ Reconnect error: $err");
     });
   }
+
+  // method for watch the trip of the current bus and
+  // if there is any trip active and it is not joined via socket to the room,
+  // it will join the room with new trip id and
+  // continues listening to the updates coming from the socket
+  static void startTripWatcher({required BuildContext context, required io.Socket socket}) {
+    // Cancel previous watcher if any
+    tripCheckerTimer?.cancel();
+
+    tripCheckerTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      final busDataCubit = context.read<BusDataCubit>();
+
+      // Fetch the bus and its active trip data
+      await busDataCubit.getBusData();
+
+      final busData = busDataCubit.state.busData;
+      final newActiveTripId = busData.activeTripTimelineModel?.tripDetails?.id;
+
+      // No active trip at the moment
+      if (newActiveTripId == null) {
+        log("🟡 No active trip for this bus currently.");
+        currentActiveTripId = null;
+        return;
+      }
+
+      // If trip is same then nothing to do
+      if (currentActiveTripId == newActiveTripId) return;
+
+      // Trip changed then join new room
+      currentActiveTripId = newActiveTripId;
+
+      log("🟢 New active trip detected → joining tripId: $newActiveTripId");
+
+      socket.emit("join-trip", {"tripId": newActiveTripId});
+    });
+  }
+
 }
