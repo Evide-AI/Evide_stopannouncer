@@ -14,6 +14,8 @@ class WebSocketServices {
   static int? lastShownStopSequence;
   static Timer? tripCheckerTimer;
   static int? currentActiveTripId;
+  static double? totalDistanceToNextStop;
+  static bool isNextStopAlreadyShown = false;
 
 
   static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required AudioPlayer audioPlayer}) {
@@ -55,10 +57,11 @@ class WebSocketServices {
     // on gps location update
     socket.on('location-update', (data) {
       final jsonData = data is String ? jsonDecode(data) : data;
-      final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
+      final currentStopSequenceNumber = jsonData["current_stop_sequence_number"];
       final nextstopSequenceNumber = jsonData["next_stop_sequence_number"];
       final currentStopName = jsonData["current_stop_name"];
       final nextStopName = jsonData["next_stop_name"];
+      final distanceToNextStopInMeters = jsonData["distanceToNextStopMeters"];
       log("📍 location data: $jsonData");
       try {
         final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
@@ -73,7 +76,8 @@ class WebSocketServices {
             // Prevent repeating for same stop
             if (lastShownStopSequence == currentStopSequenceNumber) return;
             lastShownStopSequence = currentStopSequenceNumber;
-
+            // reading the totalDistance to next stop only once means at the time the bus reached the stop
+            totalDistanceToNextStop = distanceToNextStopInMeters;
             // ----------------------------------------------------
             // GET CURRENT STOP DATA
             // ----------------------------------------------------
@@ -94,11 +98,16 @@ class WebSocketServices {
               stopName: currentStopName,
             );
 
-            // ----------------------------------------------------
-            // GET NEXT STOP DATA
-            // ----------------------------------------------------
+            lastShownStopSequence = currentStopSequenceNumber;
+            isNextStopAlreadyShown = false;
+          }
+        }
 
-
+        // ----------------------------------------------------
+        // GET NEXT STOP DATA
+        // ----------------------------------------------------
+        if (totalDistanceToNextStop != null) {
+          if (totalDistanceToNextStop! > 500 && (distanceToNextStopInMeters != null && distanceToNextStopInMeters <= 200 && !isNextStopAlreadyShown)) {
             StopEntity? nextStop;
             try {
               nextStop = stops.firstWhere(
@@ -112,26 +121,21 @@ class WebSocketServices {
 
             final nextStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[nextStop?.stopId?.toString()];
 
-            // After 10 seconds → play NEXT stop audio & dialog
-            Future.delayed(const Duration(seconds: 20), () {
-              log("🎵 Next Stop Audio: $nextStopAudio");
-
-              // Play NEXT audio
-              if (nextStopAudio != null) {
-                playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
-              }
-              if (nextStopName != null) {
-                // Show next stop dialog
-                currentStopDataShowingDialog(
-                  isCurrentStop: false,
-                  isAudioPresent: nextStopAudio != null,
-                  context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-                  stopName: nextStopName,
-                );
-              }
-            });
-
-            lastShownStopSequence = currentStopSequenceNumber;
+            // Play NEXT audio
+            if (nextStopAudio != null) {
+              playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
+            }
+            if (nextStopName != null) {
+              // Show next stop dialog
+              currentStopDataShowingDialog(
+                isCurrentStop: false,
+                isAudioPresent: nextStopAudio != null,
+                context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+                stopName: nextStopName,
+              );
+            }
+            // assigning true to isNextStopAlreadyShown to prevent showing dialog multiple time for same stop
+            isNextStopAlreadyShown = true;
           }
         }
 
