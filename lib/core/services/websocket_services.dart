@@ -21,12 +21,14 @@ class WebSocketServices {
     socket.onConnect((_) {
       final busData = context.read<BusDataCubit>().state.busData;
       log('🟢 Socket Connected: ${socket.id}');
-      startTripWatcher(context: context, socket: socket);
       final tripId = busData.activeTripTimelineModel?.tripDetails?.id;
+      currentActiveTripId = tripId;
       if (tripId != null) {
         log('🚍 Joining trip: $tripId');
         socket.emit('join-trip', {'tripId': tripId});
       }
+      // starting trip watch of the bus
+      startTripWatcher(context: context, socket: socket);
     });
 
     // if joined trip
