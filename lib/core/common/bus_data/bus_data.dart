@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data/model/audio_video_model.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data/model/timeline_model.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/constants/db_constants.dart';
@@ -16,7 +17,8 @@ import 'package:evide_stop_announcer_app/core/services/api_reponse.dart';
 abstract class BusData {
   Future<BusDataEntity?> getBusDocData({required String busPairingCode});
   Future<TimeLineModel> getActiveTripData({required int busId});
-  Stream<List<String>> streamBusVideos({required String busPairingCode});
+  // Stream<List<String>> streamBusVideos({required String busPairingCode});
+  Stream<AudioVideoModel>? streamBusVideosAndAudios({required String busPairingCode});
 }
 
 class BusDataImpl implements BusData {
@@ -25,26 +27,60 @@ class BusDataImpl implements BusData {
 
   BusDataImpl({required this.firebaseFirestore, required this.dio});
 
+  // @override
+  // Stream<List<String>> streamBusVideos({required String busPairingCode}) {
+  //   try {
+  //     return firebaseFirestore
+  //       .collection(DbConstants.busesCollection)
+  //       .doc(busPairingCode)
+  //       .snapshots()
+  //       .map((doc) {
+  //         if (!doc.exists || doc.data() == null) return [];
+
+  //         final data = doc.data()!;
+  //         return data[DbConstants.adVideos] != null
+  //             ? List<String>.from(data[DbConstants.adVideos])
+  //             : [];
+  //       });
+  //   } catch (e) {
+  //     return [] as Stream<List<String>>;
+  //   }
+  // }
+
   @override
-  Stream<List<String>> streamBusVideos({required String busPairingCode}) {
+  Stream<AudioVideoModel>? streamBusVideosAndAudios({required String busPairingCode}) {
     try {
       return firebaseFirestore
-        .collection(DbConstants.busesCollection)
-        .doc(busPairingCode)
-        .snapshots()
-        .map((doc) {
-          if (!doc.exists || doc.data() == null) return [];
+          .collection(DbConstants.busesCollection)
+          .doc(busPairingCode)
+          .snapshots()
+          .map((doc) {
+        if (!doc.exists || doc.data() == null) {
+          return AudioVideoModel(videoUrls: [], audioUrls: {});
+        }
 
-          final data = doc.data()!;
-          return data[DbConstants.adVideos] != null
-              ? List<String>.from(data[DbConstants.adVideos])
-              : [];
-        });
+        final data = doc.data()!;
+
+        // VIDEOS → LIST<String>
+        final videos = data[DbConstants.adVideos] != null
+            ? List<String>.from(data[DbConstants.adVideos])
+            : <String>[];
+
+        // STOP AUDIOS → MAP<String, String>
+        final stopAudiosMap = data[DbConstants.stopAudios] != null
+            ? Map<String, String>.from(data[DbConstants.stopAudios])
+            : <String, String>{};
+
+        return AudioVideoModel(
+          videoUrls: videos,
+          audioUrls: stopAudiosMap,
+        );
+      });
     } catch (e) {
-      return [] as Stream<List<String>>;
+      return null;
     }
   }
-  
+
   // method to get bus document data by pairing code
   @override
   Future<BusDataEntity?> getBusDocData({required String busPairingCode}) async {

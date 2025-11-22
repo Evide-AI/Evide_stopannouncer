@@ -72,9 +72,9 @@ Future<dynamic> currentStopDataShowingDialog({
                         ),
                         AppConstraints.kHeight16,
                         Text(
-                          "Current Stop",
+                          "Next Stop",
                           style: AppCommonStyles.commonTextStyle(
-                            color: Colors.white70,
+                            color: AppColors.kWhite,
                             fontSize: 8.sp,
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.5,

@@ -28,7 +28,7 @@ class BusDataCubit extends Cubit<BusDataState> {
   StreamSubscription? _videoStreamSub;
 
   // Method for getting bus data (including bus name, no, ad_videos and stop_audios)
-  void getBusData({String? pairingCode}) async{
+  Future<void> getBusData({String? pairingCode}) async{
     emit(state.copyWith(status: BusDataStatus.loading));
     try {
       final savedPairingCode = SharedPrefsServices.getPairingCode();
@@ -38,10 +38,6 @@ class BusDataCubit extends Cubit<BusDataState> {
         emit(state.copyWith(status: BusDataStatus.error, message: failure.message));
       }, (busdata) async {
         if (busdata != null) {
-          // if (socket != null && audioPlayer != null && busdata.activeTripTimelineModel != null) {
-          //   WebSocketServices.connectSocket(activeTripTimelineData: busdata.activeTripTimelineModel!, socket: socket, stopAudios: busdata.stopAudios ?? {}, audioPlayer: audioPlayer);
-          //   socket.connect();
-          // }
           await SharedPrefsServices.setIsPaired(isPaired: true);
           // if no pairing code is saved, save the current one
           if (savedPairingCode == null || savedPairingCode.isEmpty) {
@@ -60,7 +56,7 @@ class BusDataCubit extends Cubit<BusDataState> {
     }
   }
 
-  void getVideosToPlay({String? busPairingCode}) {
+  void getVideosAndAudiosToPlay({String? busPairingCode}) {
     try {
       String? pairingCode = SharedPrefsServices.getPairingCode() ?? busPairingCode;
       if (pairingCode != null) {
@@ -81,14 +77,18 @@ class BusDataCubit extends Cubit<BusDataState> {
               },
 
               // Success
-              (videos) async {
+              (audioVideoModel) async {
+                final audios = audioVideoModel.audioUrls;
+                final videos = audioVideoModel.videoUrls;
                 // Download videos to local storage
                 localVideoPaths =
                     await AppCommonMethods.downloadVideosToLocal(videos);
 
                 // Emit updated paths
                 emit(state.copyWith(
-                  busData: state.busData,
+                  busData: state.busData.copyWith(
+                    stopAudios: audios.isNotEmpty ? audios : state.busData.stopAudios
+                  ),
                   localVideoPaths: localVideoPaths,
                   status: BusDataStatus.loaded,
                 ));
@@ -103,31 +103,4 @@ class BusDataCubit extends Cubit<BusDataState> {
       ));
     }
   }
-
-  // Future<void> getActiveTrip({required int busId, required Socket socket, required AudioPlayer audioPlayer}) async {
-  //   try {
-  //     // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
-  //     final res = await getActiveTripDataUsecase(params: busId);
-  //     res.fold((failure) {
-  //       debugPrint("Error fetching active trip data: ${failure.message}");
-  //     }, (activeTripTimelineData) async {
-  //       if (activeTripTimelineData != null) {
-  //         if(state is BusDataLoadedState) {
-  //           Future.delayed(Duration(seconds: 2), () {
-  //             WebSocketServices.connectSocket(
-  //               activeTripTimelineData: activeTripTimelineData,
-  //               socket: socket,
-  //               stopAudios: (state as BusDataLoadedState).busData.stopAudios ?? {},
-  //               audioPlayer: audioPlayer,
-  //             );
-  //           });
-  //         }
-  //       } else {
-  //         debugPrint("No active trip data found");
-  //       }
-  //     },);
-  //   } catch (e) {
-  //     print("Error fetching active trip data: ${e.toString()}");
-  //   }
-  // }
 }

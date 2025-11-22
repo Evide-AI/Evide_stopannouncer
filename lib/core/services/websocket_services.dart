@@ -69,44 +69,52 @@ class WebSocketServices {
     // on gps location update
     socket.on('location-update', (data) {
       final jsonData = data is String ? jsonDecode(data) : data;
-      final currentStopSequenceNumber =
-          jsonData['current_stop_sequence_number'];
+      final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
+      final nextStopName = jsonData["next_stop_name"];
       log("📍 location data: $jsonData");
 
       try {
-        for (StopEntity stop
-            in context
-                    .read<BusDataCubit>()
-                    .state
-                    .busData
-                    .activeTripTimelineModel
-                    ?.stopList ??
-                []) {
+        final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
+
+        for (int i = 0; i < stops.length; i++) {
+          final stop = stops[i];
+
           if (stop.sequenceOrder == currentStopSequenceNumber) {
-            log('🏁 Arrived: ${stop.stopName}');
+            log('🏁 Arrived Current Stop: ${stop.stopName}');
+
+            // -------------------------------
+            // GET NEXT STOP DATA
+            // -------------------------------
+            StopEntity? nextStop;
+            if (i + 1 < stops.length) {
+              nextStop = stops[i + 1];
+            }
+
+            final nextStopId = nextStop?.stopId;
+
+            // GET NEXT STOP AUDIO
+            final audioUrl = context .read<BusDataCubit>() .state .busData .stopAudios?[nextStopId.toString()];
+
+            log("🎵 Next Stop Audio: $audioUrl");
 
             if (lastShownStopSequence != currentStopSequenceNumber) {
-              // PLAY AUDIO
-              final audioUrl = context
-                  .read<BusDataCubit>()
-                  .state
-                  .busData
-                  .stopAudios?[stop.stopId.toString()];
+              // PLAY NEXT STOP AUDIO
               if (audioUrl != null) {
                 playStopAudioAndHandleVideoVolume(audioUrl: audioUrl);
               }
 
-              // SHOW DIALOG
+              // SHOW DIALOG WITH NEXT STOP
               currentStopDataShowingDialog(
                 isAudioPresent: audioUrl != null,
-                context:
-                    AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-                stopName: stop.stopName ?? 'Unknown Stop',
+                context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+                stopName: nextStopName,
               );
             }
+
             lastShownStopSequence = currentStopSequenceNumber;
           }
         }
+
       } catch (e) {
         log('❌ Error parsing location-update: $e');
       }
@@ -136,8 +144,5 @@ class WebSocketServices {
     socket.onReconnectError((err) {
       log("❌ Reconnect error: $err");
     });
-
-    // connect the socket
-    socket.connect(); // only once
   }
 }

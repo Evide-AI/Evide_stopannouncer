@@ -1,3 +1,4 @@
+import 'package:evide_stop_announcer_app/core/common/bus_data/model/audio_video_model.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data/model/timeline_model.dart';
 import 'package:evide_stop_announcer_app/core/failure/failure.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data/bus_data.dart';
@@ -37,18 +38,36 @@ class BusDataRepoImpl implements BusDataRepo{
     }
   }
 
+  // @override
+  // Stream<Either<Failure, List<String>>> streamBusVideos({
+  //   required String busPairingCode,
+  // }) {
+  //   try {
+  //     return busData.streamBusVideos(busPairingCode: busPairingCode)
+  //         .map((videos) {
+  //       return Right(videos);
+  //     });
+  //   } catch (e) {
+  //     return Stream.value(Left(Failure(message: e.toString())));
+  //   }
+  // }
+
   @override
-  Stream<Either<Failure, List<String>>> streamBusVideos({
+  Stream<Either<Failure, AudioVideoModel>> streamBusVideosAndAudios({
     required String busPairingCode,
   }) {
     try {
-      return busData.streamBusVideos(busPairingCode: busPairingCode)
-          .map((videos) {
-        return Right(videos);
+      return busData
+          .streamBusVideosAndAudios(busPairingCode: busPairingCode)!
+          .map<Either<Failure, AudioVideoModel>>((data) {
+        return Right(data);
+      }).handleError((error) {
+        return Left(Failure(message: error.toString()));
       });
     } catch (e) {
       return Stream.value(Left(Failure(message: e.toString())));
     }
   }
+
 
 }

@@ -1,13 +1,16 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
 import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
 import 'package:evide_stop_announcer_app/core/constants/backend_constants.dart';
 import 'package:evide_stop_announcer_app/core/services/kiosk_mode_service.dart';
 import 'package:evide_stop_announcer_app/core/services/websocket_services.dart';
+import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/widgets/ads_play_page_common_loading_widget.dart';
 import 'package:evide_stop_announcer_app/features/install_app_list_page/installed_apps_list_page.dart';
 import 'package:evide_stop_announcer_app/features/install_app_list_page/settings_open_option_selection_page.dart';
@@ -31,6 +34,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
   int currentVideoIndex = 0;
   List<String> _videoList = [];
   late io.Socket socket;
+  int? lastShownStopSequence;
 
   @override
   void initState() {
@@ -41,31 +45,48 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
     initializeSocket();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
+      setupBusDataListener();
       context.read<BusDataCubit>().getBusData();
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          WebSocketServices.connectAndListenToSocket(
-            socket: socket, context: context,
-            audioPlayer: audioPlayer,
-            playStopAudioAndHandleVideoVolume: ({required String audioUrl}) {
-              /// 🔇 Mute video before playing stop audio
-                _betterPlayerController?.videoPlayerController?.setVolume(0.0);
-
-                audioPlayer.play(UrlSource(audioUrl));
-
-                /// 🟢 When stop audio completes – restore video volume
-                Future.delayed(Duration(seconds: 1), () {
-                  audioPlayer.onPlayerComplete.listen((event) {
-                    _betterPlayerController?.videoPlayerController?.setVolume(
-                      0.01,
-                    );
-                  });
-                });
-            }
-          );
-        }
-      });
+      setUpSocketListners();
+      socket.connect();
     });
+  }
+
+  void setupBusDataListener() {
+    context.read<BusDataCubit>().stream.listen((state) {
+      if (state.status == BusDataStatus.loaded) {
+        final tripId =
+            state.busData.activeTripTimelineModel?.tripDetails?.id;
+
+        if (tripId != null && socket.connected) {
+          log("🔄 BusData Loaded → Joining Trip Again: $tripId");
+          socket.emit("join-trip", {"tripId": tripId});
+        }
+      }
+    });
+  }
+
+
+  void setUpSocketListners() {
+   WebSocketServices.connectAndListenToSocket(
+      socket: socket, context: context,
+      audioPlayer: audioPlayer,
+      playStopAudioAndHandleVideoVolume: ({required String audioUrl}) {
+        /// 🔇 Mute video before playing stop audio
+          _betterPlayerController?.videoPlayerController?.setVolume(0.0);
+
+          audioPlayer.play(UrlSource(audioUrl));
+
+          /// 🟢 When stop audio completes – restore video volume
+          Future.delayed(Duration(seconds: 1), () {
+            audioPlayer.onPlayerComplete.listen((event) {
+              _betterPlayerController?.videoPlayerController?.setVolume(
+                0.01,
+              );
+            });
+          });
+        }
+      );
   }
 
   initializeSocket() {
@@ -244,7 +265,7 @@ void _skipToNextOnError() async {
             }
             // Start streaming video updates
             if (mounted) {
-              context.read<BusDataCubit>().getVideosToPlay();
+              context.read<BusDataCubit>().getVideosAndAudiosToPlay();
             }
             }
           },),
