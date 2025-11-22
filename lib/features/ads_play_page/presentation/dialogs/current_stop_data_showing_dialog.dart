@@ -6,6 +6,7 @@ Future<dynamic> currentStopDataShowingDialog({
   required String stopName,
   required bool isAudioPresent,
   required bool isCurrentStop,
+  required String? stopNameInMalayalam,
 }) async {
   // Show the dialog
   final dialogFuture = showGeneralDialog(
@@ -82,6 +83,20 @@ Future<dynamic> currentStopDataShowingDialog({
                           ),
                         ),
                         AppConstraints.kHeight8,
+                        if (stopNameInMalayalam != null) ...[
+                          Text(
+                            stopNameInMalayalam,
+                            style: AppCommonStyles.commonTextStyle(
+                              color: AppColors.kWhite,
+                              fontSize: 20.sp,
+                              fontFamily: AppAssets.robotoBoldFont,
+                              letterSpacing: 1.5,
+                              height: 1.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          AppConstraints.kHeight8,
+                        ],
                         Text(
                           stopName,
                           style: AppCommonStyles.commonTextStyle(

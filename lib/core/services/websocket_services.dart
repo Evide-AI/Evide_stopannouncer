@@ -81,7 +81,7 @@ class WebSocketServices {
             // ----------------------------------------------------
             // GET CURRENT STOP DATA
             // ----------------------------------------------------
-            final currentStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[stop.stopId?.toString()];
+            final currentStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[stop.stopId?.toString()]["stop_audio_url"];
 
             log("🎵 Current Stop Audio: $currentStopAudio");
 
@@ -89,13 +89,14 @@ class WebSocketServices {
             if (currentStopAudio != null) {
               playStopAudioAndHandleVideoVolume(audioUrl: currentStopAudio);
             }
-
+            final currentStopNameInMalayalam = context.read<BusDataCubit>().state.busData.stopAudios?[stop?.stopId?.toString()]["stop_name"];
             // Show current stop dialog
             currentStopDataShowingDialog(
               isCurrentStop: true,
               isAudioPresent: currentStopAudio != null,
               context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
               stopName: currentStopName,
+              stopNameInMalayalam: currentStopNameInMalayalam,
             );
 
             lastShownStopSequence = currentStopSequenceNumber;
@@ -119,8 +120,8 @@ class WebSocketServices {
             }
 
 
-            final nextStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[nextStop?.stopId?.toString()];
-
+            final nextStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[nextStop?.stopId?.toString()]["stop_audio_url"];
+            final String nextStopNameInMalayalam = context.read<BusDataCubit>().state.busData.stopAudios?[nextStop?.stopId?.toString()]["stop_name"];
             // Play NEXT audio
             if (nextStopAudio != null) {
               playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
@@ -132,6 +133,7 @@ class WebSocketServices {
                 isAudioPresent: nextStopAudio != null,
                 context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
                 stopName: nextStopName,
+                stopNameInMalayalam: nextStopNameInMalayalam,
               );
             }
             // assigning true to isNextStopAlreadyShown to prevent showing dialog multiple time for same stop
@@ -178,11 +180,11 @@ class WebSocketServices {
     // Cancel previous watcher if any
     tripCheckerTimer?.cancel();
 
-    tripCheckerTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+    tripCheckerTimer = Timer.periodic(const Duration(seconds: 40), (_) async {
       final busDataCubit = context.read<BusDataCubit>();
 
       // Fetch the bus and its active trip data
-      await busDataCubit.getBusData();
+      await busDataCubit.getBusData(isLoadingNeeded: false);
 
       final busData = busDataCubit.state.busData;
       final newActiveTripId = busData.activeTripTimelineModel?.tripDetails?.id;

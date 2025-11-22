@@ -56,7 +56,7 @@ class BusDataImpl implements BusData {
           .snapshots()
           .map((doc) {
         if (!doc.exists || doc.data() == null) {
-          return AudioVideoModel(videoUrls: [], audioUrls: {});
+          return AudioVideoModel(videoUrls: [], audios: {});
         }
 
         final data = doc.data()!;
@@ -73,7 +73,7 @@ class BusDataImpl implements BusData {
 
         return AudioVideoModel(
           videoUrls: videos,
-          audioUrls: stopAudiosMap,
+          audios: stopAudiosMap,
         );
       });
     } catch (e) {

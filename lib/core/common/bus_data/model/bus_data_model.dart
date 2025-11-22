@@ -18,7 +18,7 @@ class BusDataModel extends BusDataEntity{
       busNumberPlate: map[DbConstants.busNumberPlate] as String?,
       adVideos: map[DbConstants.adVideos] != null ? List<String>.from(map[DbConstants.adVideos]) : null,
       stopAudios: map[DbConstants.stopAudios] != null
-              ? Map<String, String>.from(map[DbConstants.stopAudios])
+              ? Map<String, dynamic>.from(map[DbConstants.stopAudios])
               : null,
     );
   }
