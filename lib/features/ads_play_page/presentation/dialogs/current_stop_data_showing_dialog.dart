@@ -61,7 +61,7 @@ Future<dynamic> currentStopDataShowingDialog({
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(18),
+                          padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
                             color: AppColors.kWhite.withAlpha(38),
                             shape: BoxShape.circle,
@@ -69,7 +69,7 @@ Future<dynamic> currentStopDataShowingDialog({
                           child: Icon(
                             Icons.location_on_rounded,
                             color: Colors.white,
-                            size: 30.sp,
+                            size: 12.sp,
                           ),
                         ),
                         AppConstraints.kHeight16,
@@ -101,7 +101,7 @@ Future<dynamic> currentStopDataShowingDialog({
                           stopName,
                           style: AppCommonStyles.commonTextStyle(
                             color: AppColors.kWhite,
-                            fontSize: 20.sp,
+                            fontSize: 22.sp,
                             fontFamily: AppAssets.robotoBoldFont,
                             letterSpacing: 1.5,
                             height: 1.2,
@@ -130,7 +130,7 @@ Future<dynamic> currentStopDataShowingDialog({
   );
 
   // Automatically close after 10 seconds
-  Future.delayed(Duration(seconds: isAudioPresent ? 5 : 3), () {
+  Future.delayed(Duration(seconds: 5), () {
     if (context.mounted) {
       if (Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
