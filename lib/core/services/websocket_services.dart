@@ -32,7 +32,7 @@ class WebSocketServices {
         final tripId = data?['tripId'];
         if (tripId != null) {
           // Fetch new trip data
-          // context.read<BusDataCubit>().getBusData();
+          context.read<BusDataCubit>().getBusData();
 
           // Join the new trip room
           socket.emit("join-trip", {"tripId": tripId});
@@ -70,46 +70,80 @@ class WebSocketServices {
     socket.on('location-update', (data) {
       final jsonData = data is String ? jsonDecode(data) : data;
       final currentStopSequenceNumber = jsonData['current_stop_sequence_number'];
+      final nextstopSequenceNumber = jsonData["next_stop_sequence_number"];
+      final currentStopName = jsonData["current_stop_name"];
       final nextStopName = jsonData["next_stop_name"];
       log("📍 location data: $jsonData");
-
       try {
         final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
 
         for (int i = 0; i < stops.length; i++) {
           final stop = stops[i];
 
+          // CHECK CURRENT STOP MATCH
           if (stop.sequenceOrder == currentStopSequenceNumber) {
             log('🏁 Arrived Current Stop: ${stop.stopName}');
 
-            // -------------------------------
+            // Prevent repeating for same stop
+            if (lastShownStopSequence == currentStopSequenceNumber) return;
+            lastShownStopSequence = currentStopSequenceNumber;
+
+            // ----------------------------------------------------
+            // GET CURRENT STOP DATA
+            // ----------------------------------------------------
+            final currentStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[stop.stopId?.toString()];
+
+            log("🎵 Current Stop Audio: $currentStopAudio");
+
+            // Play current audio
+            if (currentStopAudio != null) {
+              playStopAudioAndHandleVideoVolume(audioUrl: currentStopAudio);
+            }
+
+            // Show current stop dialog
+            currentStopDataShowingDialog(
+              isCurrentStop: true,
+              isAudioPresent: currentStopAudio != null,
+              context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+              stopName: currentStopName,
+            );
+
+            // ----------------------------------------------------
             // GET NEXT STOP DATA
-            // -------------------------------
+            // ----------------------------------------------------
+
+
             StopEntity? nextStop;
-            if (i + 1 < stops.length) {
-              nextStop = stops[i + 1];
-            }
-
-            final nextStopId = nextStop?.stopId;
-
-            // GET NEXT STOP AUDIO
-            final audioUrl = context .read<BusDataCubit>() .state .busData .stopAudios?[nextStopId.toString()];
-
-            log("🎵 Next Stop Audio: $audioUrl");
-
-            if (lastShownStopSequence != currentStopSequenceNumber) {
-              // PLAY NEXT STOP AUDIO
-              if (audioUrl != null) {
-                playStopAudioAndHandleVideoVolume(audioUrl: audioUrl);
-              }
-
-              // SHOW DIALOG WITH NEXT STOP
-              currentStopDataShowingDialog(
-                isAudioPresent: audioUrl != null,
-                context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-                stopName: nextStopName,
+            try {
+              nextStop = stops.firstWhere(
+                (s) => s.sequenceOrder == nextstopSequenceNumber,
               );
+            } on StateError {
+              // firstWhere throws StateError if no element found
+              nextStop = null;
             }
+
+
+            final nextStopAudio = context.read<BusDataCubit>().state.busData.stopAudios?[nextStop?.stopId?.toString()];
+
+            // After 10 seconds → play NEXT stop audio & dialog
+            Future.delayed(const Duration(seconds: 30), () {
+              log("🎵 Next Stop Audio: $nextStopAudio");
+
+              // Play NEXT audio
+              if (nextStopAudio != null) {
+                playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
+              }
+              if (nextStopName != null) {
+                // Show next stop dialog
+                currentStopDataShowingDialog(
+                  isCurrentStop: false,
+                  isAudioPresent: nextStopAudio != null,
+                  context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+                  stopName: nextStopName,
+                );
+              }
+            });
 
             lastShownStopSequence = currentStopSequenceNumber;
           }

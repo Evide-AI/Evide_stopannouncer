@@ -5,6 +5,7 @@ Future<dynamic> currentStopDataShowingDialog({
   required BuildContext context,
   required String stopName,
   required bool isAudioPresent,
+  required bool isCurrentStop,
 }) async {
   // Show the dialog
   final dialogFuture = showGeneralDialog(
@@ -72,7 +73,7 @@ Future<dynamic> currentStopDataShowingDialog({
                         ),
                         AppConstraints.kHeight16,
                         Text(
-                          "Next Stop",
+                          "${isCurrentStop ? "Current" : "Next"} Stop",
                           style: AppCommonStyles.commonTextStyle(
                             color: AppColors.kWhite,
                             fontSize: 8.sp,
