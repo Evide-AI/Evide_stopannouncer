@@ -93,12 +93,13 @@ class BusDataImpl implements BusData {
         BusDataEntity busDataModel = BusDataModel.fromMap(data);
         if (busDataModel.busId != null) {
           try {
+            // getting all trips of th bus by bus id
             final allTrips = await getAllTripsByBusId(busId: busDataModel.busId!);
-            if(allTrips.isNotEmpty){
-              final activeTrips = allTrips.where((trip) => trip.isTripActive == true).toList();
-              if(activeTrips.isNotEmpty){
-                final activeTrip = activeTrips.first;
-                if (activeTrip.tripId != null) {
+            if(allTrips.isNotEmpty){ // checking all trips is not empty
+              final activeTrips = allTrips.where((trip) => trip.isTripActive == true).toList(); // filter out the active trip from the trip list
+              if(activeTrips.isNotEmpty){ // checking activetrips not empty
+                final activeTrip = activeTrips.first; //taking the first, because only one active for a bus at a time
+                if (activeTrip.tripId != null) { // if trip id id not null, then getting the timeline response of that trip
                     final timelineResponse = await serviceLocator<ApiService>().get(url: "${BackendConstants.baseUrl}${ApiEndpoint.getTripTimeLineData(tripId: activeTrip.tripId!)}");
                     final apiResponse = ApiResponse.fromJson(
                       json: timelineResponse?.data,
@@ -106,18 +107,17 @@ class BusDataImpl implements BusData {
                         return TimeLineModel.fromJson(data);
                       },
                     );
-                    busDataModel = busDataModel.copyWith(activeTripTimelineModel : apiResponse.data);
+                    busDataModel = busDataModel.copyWith(activeTripTimelineModel : apiResponse.data); // storing the trip data on busdata model
                 }
               }
             }
-            return busDataModel;
+            return busDataModel; // returning the busdata model
           } catch (e) {
             debugPrint('Error fetching active trip data: $e');
           }
         }
-        
 
-        return busDataModel;
+        return busDataModel; // if not active trip found return bus data model from here
       }else {
         throw Failure(message: "Bus document does not exist");
       }

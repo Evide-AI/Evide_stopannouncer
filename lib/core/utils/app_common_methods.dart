@@ -61,13 +61,14 @@ class AppCommonMethods {
 static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
   if (urls.isEmpty) return [];
 
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await getApplicationDocumentsDirectory(); // getting application document directory
+  // all valid extension for check
   const validExts = {
     '.mp4', '.webm', '.mov', '.mkv', '.avi',
     '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
   };
 
-  const maxRetries = 3;
+  const maxRetries = 3; // retry for 3 times
 
   Future<String?> downloadSingle(String url, int index) async {
     final uri = Uri.parse(url);
@@ -77,13 +78,13 @@ static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
     fileName = fileName.split("%2F").last;
 
     String ext = p.extension(fileName).toLowerCase();
-    if (!validExts.contains(ext)) ext = ".mp4";
+    if (!validExts.contains(ext)) ext = ".mp4"; // if ext not in validextension adding ext .mp4
 
     final filePath = p.join(appDir.path, "$hashed$ext");
     final file = File(filePath);
 
     // -------------------------------
-    // CACHE VALIDATION
+    // CACHE VALIDATION - checking file exits or not if exist, will check valid or not, if valid returning the file path, else deleting the file
     // -------------------------------
     if (await file.exists()) {
       if (await _isValidVideoFile(file)) {
@@ -112,7 +113,7 @@ static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
         }
         debugPrint("✅ Response 200");
 
-        await file.writeAsBytes(response.data!, flush: true);
+        await file.writeAsBytes(response.data!, flush: true); // writing response data as bytes to file
 
         // -------------------------------
         // Validate real video

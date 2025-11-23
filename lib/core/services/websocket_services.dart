@@ -76,17 +76,17 @@ class WebSocketServices {
             log('🏁 Arrived Current Stop: ${stop.stopName}');
 
             // Prevent repeating for same stop
-            if (lastShownStopSequence == currentStopSequenceNumber) return;
+            if (lastShownStopSequence == currentStopSequenceNumber) return; //if lastShownStopSequence and currentStopSequenceNumber matches then return from this loop
 
-            lastShownStopSequence = currentStopSequenceNumber;
+            lastShownStopSequence = currentStopSequenceNumber; // assigning current stop sequence number to lastShownStopSequence
             // ----------------------------------------------------
             // GET CURRENT STOP DATA
             // ----------------------------------------------------
             final stopId = stop.stopId?.toString();
-            final stopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[stopId];
+            final stopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[stopId]; // getting current stop audio map
 
-            final currentStopAudio = stopAudioMap?["stop_audio_url"];
-            final currentStopNameInMalayalam = stopAudioMap?["stop_name"];
+            final currentStopAudio = stopAudioMap?["stop_audio_url"]; // getting current stop audio
+            final currentStopNameInMalayalam = stopAudioMap?["stop_name"]; // getting current stop name in malayalam
 
 
             log("🎵 Current Stop Audio: $currentStopAudio");
@@ -114,14 +114,16 @@ class WebSocketServices {
                 // firstWhere throws StateError if no element found
                 nextStop = null;
               }
+              // getting next stop id
               final nextStopId = nextStop?.stopId?.toString();
-              final nextStopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[nextStopId];
-              final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"];
-              final nextStopAudio = nextStopAudioMap?["stop_audio_url"];
+              final nextStopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[nextStopId]; //getting next stop audio and name containing map
+              final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"]; // getting next stop name in malayalam
+              final nextStopAudio = nextStopAudioMap?["stop_audio_url"]; //getting next stop audio url
 
-              if (nextStopAudio != null) {
+              if (nextStopAudio != null) { //if next stop audio not null, will play the audio
                 playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
               }
+              // showing next stop dialog
                await currentStopDataShowingDialog(
                 isCurrentStop: false,
                 context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
@@ -129,7 +131,7 @@ class WebSocketServices {
                 stopNameInMalayalam: nextStopNameInMalayalam,
               );
             },);
-
+            // setting current stop sequence number to lastShownStopSequence (It is for avoid again showing dialog for current stop even if new update come for the same stop)
             lastShownStopSequence = currentStopSequenceNumber;
             isNextStopAlreadyShown = false;
           }

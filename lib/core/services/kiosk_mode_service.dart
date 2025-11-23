@@ -3,6 +3,7 @@ import 'package:evide_stop_announcer_app/core/services/launch_permission.dart';
 import 'package:kiosk_mode/kiosk_mode.dart';
 
 class KioskModeService {
+  // method for enabling kiosk mode
   static Future<void> enableKioskMode() async {
     try {
       await startKioskMode();
@@ -12,7 +13,7 @@ class KioskModeService {
       debugPrint("❌ Error enabling kiosk mode: $e");
     }
   }
-
+  // method for disablinig kiosk mode
   static Future<void> disableKioskMode() async {
     try {
       await stopKioskMode();

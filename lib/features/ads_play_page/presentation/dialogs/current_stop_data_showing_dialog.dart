@@ -128,7 +128,7 @@ Future<dynamic> currentStopDataShowingDialog({
     },
   );
 
-  // Automatically close after 10 seconds
+  // Automatically close after 5 seconds
   Future.delayed(Duration(seconds: 5), () {
     if (context.mounted) {
       if (Navigator.of(context, rootNavigator: true).canPop()) {
