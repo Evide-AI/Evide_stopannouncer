@@ -66,10 +66,10 @@ class BusDataImpl implements BusData {
             ? List<String>.from(data[DbConstants.adVideos])
             : <String>[];
 
-        // STOP AUDIOS → MAP<String, String>
+        // STOP AUDIOS → MAP<String, dynamic>
         final stopAudiosMap = data[DbConstants.stopAudios] != null
-            ? Map<String, String>.from(data[DbConstants.stopAudios])
-            : <String, String>{};
+            ? Map<String, dynamic>.from(data[DbConstants.stopAudios])
+            : <String, dynamic>{};
 
         return AudioVideoModel(
           videoUrls: videos,
