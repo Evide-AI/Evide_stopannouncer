@@ -56,165 +56,47 @@ class WebSocketServices {
     });
 
     // on gps location update
-    socket.on('location-update', (data) {
+    socket.on('location-update', (data) async {
       final jsonData = data is String ? jsonDecode(data) : data;
       final currentStopSequenceNumber = jsonData["current_stop_sequence_number"];
       final nextstopSequenceNumber = jsonData["next_stop_sequence_number"];
       final currentStopName = jsonData["current_stop_name"];
       final nextStopName = jsonData["next_stop_name"];
-      final distanceToNextStopInMeters = jsonData["distance_to_next_stop_meters"];
+      // final distanceToNextStopInMeters = jsonData["distance_to_next_stop_meters"];
       log("📍 location data: $jsonData");
-      // try {
-      //   final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
-
-      //   for (int i = 0; i < stops.length; i++) {
-      //     final stop = stops[i];
-
-      //     // CHECK CURRENT STOP MATCH
-      //     if (stop.sequenceOrder == currentStopSequenceNumber) {
-      //       log('🏁 Arrived Current Stop: ${stop.stopName}');
-      //       if (isSecondUpdateFromGpsAfterCurrentStopReached) {
-      //         // reading the totalDistance to next stop only once means at the time the bus reached the stop
-      //         // totalDistanceToNextStop = distanceToNextStopInMeters;
-      //         if (distanceToNextStopInMeters > 500) {
-      //           totalDistanceToNextStop = distanceToNextStopInMeters;
-      //           isSecondUpdateFromGpsAfterCurrentStopReached = false;
-      //         }
-      //         // isSecondUpdateFromGpsAfterCurrentStopReached = false;
-      //       }
-
-      //       // Prevent repeating for same stop
-      //       if (lastShownStopSequence == currentStopSequenceNumber) continue;
-      //       if (lastShownStopSequence != currentStopSequenceNumber) {
-      //         isSecondUpdateFromGpsAfterCurrentStopReached = true;
-      //       }
-      //       lastShownStopSequence = currentStopSequenceNumber;
-      //       // if (lastShownStopSequence != currentStopSequenceNumber) {
-      //       //   // reading the totalDistance to next stop only once means at the time the bus reached the stop
-      //       //   totalDistanceToNextStop = distanceToNextStopInMeters;
-      //       // }
-      //       // ----------------------------------------------------
-      //       // GET CURRENT STOP DATA
-      //       // ----------------------------------------------------
-      //       final stopId = stop.stopId?.toString();
-      //       final stopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[stopId];
-
-      //       final currentStopAudio = stopAudioMap?["stop_audio_url"];
-      //       final currentStopNameInMalayalam = stopAudioMap?["stop_name"];
-
-
-      //       log("🎵 Current Stop Audio: $currentStopAudio");
-
-      //       // Play current audio
-      //       if (currentStopAudio != null) {
-      //         playStopAudioAndHandleVideoVolume(audioUrl: currentStopAudio);
-      //       }
-      //       // Show current stop dialog
-      //       currentStopDataShowingDialog(
-      //         isCurrentStop: true,
-      //         isAudioPresent: currentStopAudio != null,
-      //         context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-      //         stopName: currentStopName,
-      //         stopNameInMalayalam: currentStopNameInMalayalam,
-      //       );
-
-      //       lastShownStopSequence = currentStopSequenceNumber;
-      //       isNextStopAlreadyShown = false;
-      //     }
-      //   }
-
-      //   // ----------------------------------------------------
-      //   // GET NEXT STOP DATA
-      //   // ----------------------------------------------------
-      //   if (totalDistanceToNextStop != null) {
-      //     if (totalDistanceToNextStop! > 500 && (distanceToNextStopInMeters != null && distanceToNextStopInMeters <= 200 && !isNextStopAlreadyShown)) {
-      //       StopEntity? nextStop;
-      //       try {
-      //         nextStop = stops.firstWhere(
-      //           (s) => s.sequenceOrder == nextstopSequenceNumber,
-      //         );
-      //       } on StateError {
-      //         // firstWhere throws StateError if no element found
-      //         nextStop = null;
-      //       }
-
-      //       final nextStopId = nextStop?.stopId?.toString();
-      //       final nextStopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[nextStopId];
-
-      //       final nextStopAudio = nextStopAudioMap?["stop_audio_url"];
-      //       final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"];
-
-      //       // Play NEXT audio
-      //       if (nextStopAudio != null) {
-      //         playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
-      //       }
-      //       if (nextStopName != null) {
-      //         // Show next stop dialog
-      //         currentStopDataShowingDialog(
-      //           isCurrentStop: false,
-      //           isAudioPresent: nextStopAudio != null,
-      //           context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-      //           stopName: nextStopName,
-      //           stopNameInMalayalam: nextStopNameInMalayalam,
-      //         );
-      //       }
-      //       // assigning true to isNextStopAlreadyShown to prevent showing dialog multiple time for same stop
-      //       isNextStopAlreadyShown = true;
-      //     }
-      //   }
-
-      // } catch (e) {
-      //   log('❌ Error parsing location-update: $e');
-      // }
-       try {
+      try {
         final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
-
-        bool isCurrentStopMatched = false;
-
-        // ----------------------------------------------------
-        // 🔴 1. CURRENT STOP LOGIC
-        // ----------------------------------------------------
+        
+        // Iterate through the loop to find the current stop and show dialog
         for (int i = 0; i < stops.length; i++) {
           final stop = stops[i];
 
+          // CHECK CURRENT STOP MATCH
           if (stop.sequenceOrder == currentStopSequenceNumber) {
-
             log('🏁 Arrived Current Stop: ${stop.stopName}');
 
-            // Read total distance once, only after reaching stop
-            if (isSecondUpdateFromGpsAfterCurrentStopReached) {
-              if (distanceToNextStopInMeters > 500) {
-                totalDistanceToNextStop = distanceToNextStopInMeters;
-                isSecondUpdateFromGpsAfterCurrentStopReached = false;
-              }
-            }
-
-            // Prevent repeating same stop dialog
-            if (lastShownStopSequence == currentStopSequenceNumber) break;
-
-            if (lastShownStopSequence != currentStopSequenceNumber) {
-              isSecondUpdateFromGpsAfterCurrentStopReached = true;
-            }
+            // Prevent repeating for same stop
+            if (lastShownStopSequence == currentStopSequenceNumber) return;
 
             lastShownStopSequence = currentStopSequenceNumber;
-            isNextStopAlreadyShown = false;
-
-            // ---- CURRENT STOP DATA ----
+            // ----------------------------------------------------
+            // GET CURRENT STOP DATA
+            // ----------------------------------------------------
             final stopId = stop.stopId?.toString();
             final stopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[stopId];
 
             final currentStopAudio = stopAudioMap?["stop_audio_url"];
             final currentStopNameInMalayalam = stopAudioMap?["stop_name"];
 
+
             log("🎵 Current Stop Audio: $currentStopAudio");
 
-            // Play current stop audio
+            // Play current audio
             if (currentStopAudio != null) {
               playStopAudioAndHandleVideoVolume(audioUrl: currentStopAudio);
             }
-
             // Show current stop dialog
-            currentStopDataShowingDialog(
+            await currentStopDataShowingDialog(
               isCurrentStop: true,
               isAudioPresent: currentStopAudio != null,
               context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
@@ -222,50 +104,38 @@ class WebSocketServices {
               stopNameInMalayalam: currentStopNameInMalayalam,
             );
 
-            break; // No need to check further stops
-          }
-        }
+            Future.delayed(Duration(seconds: 3), () async {
+              // GETTING NEXT STOP AND STOP ID AND STOP NAME IN MALAYALAM
+              StopEntity? nextStop;
+              try {
+                nextStop = stops.firstWhere(
+                  (s) => s.sequenceOrder == nextstopSequenceNumber,
+                );
+              } on StateError {
+                // firstWhere throws StateError if no element found
+                nextStop = null;
+              }
+              final nextStopId = nextStop?.stopId?.toString();
+              final nextStopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[nextStopId];
+              final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"];
+              final nextStopAudio = nextStopAudioMap?["stop_audio_url"];
 
-        // ----------------------------------------------------
-        // 🔵 2. NEXT STOP LOGIC (ONLY WHEN NOT AT CURRENT STOP)
-        // ----------------------------------------------------
-          if (lastShownStopSequence == currentStopSequenceNumber && totalDistanceToNextStop != null && totalDistanceToNextStop! > 500 && distanceToNextStopInMeters != null && distanceToNextStopInMeters <= 200 && !isNextStopAlreadyShown) {
-
-            StopEntity? nextStop;
-            try {
-              nextStop = stops.firstWhere(
-                (s) => s.sequenceOrder == nextstopSequenceNumber,
-              );
-            } catch (_) {
-              nextStop = null;
-            }
-
-            final nextStopId = nextStop?.stopId?.toString();
-            final nextStopAudioMap =
-                context.read<BusDataCubit>().state.busData.stopAudios?[nextStopId];
-
-            final nextStopAudio = nextStopAudioMap?["stop_audio_url"];
-            final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"];
-
-            // Play next stop audio
-            if (nextStopAudio != null) {
-              playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
-            }
-
-            // Show next stop dialog
-            if (nextStopName != null) {
-              currentStopDataShowingDialog(
+              if (nextStopAudio != null) {
+                playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
+              }
+               await currentStopDataShowingDialog(
                 isCurrentStop: false,
                 isAudioPresent: nextStopAudio != null,
                 context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
                 stopName: nextStopName,
                 stopNameInMalayalam: nextStopNameInMalayalam,
               );
-            }
+            },);
 
-            isNextStopAlreadyShown = true;
+            lastShownStopSequence = currentStopSequenceNumber;
+            isNextStopAlreadyShown = false;
           }
-
+        }
       } catch (e) {
         log('❌ Error parsing location-update: $e');
       }
