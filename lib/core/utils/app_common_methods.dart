@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/services/api_service.dart';
 import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
@@ -83,7 +84,7 @@ static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
   };
 
   const maxRetries = 3;
-  final dio = Dio();
+  final dio = serviceLocator<Dio>();
 
   Future<String?> downloadSingle(String url, int index) async {
     final uri = Uri.parse(url);
@@ -159,6 +160,14 @@ static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
 
   return downloaded;
 }
+
+//   // This wrapper runs your function in another isolate
+//   static Future<List<String>> downloadVideosIsolate(List<String> urls) async {
+//     // FIX: initialize platform channel for isolate
+//     BackgroundIsolateBinaryMessenger.ensureInitialized();
+//     return await downloadVideosToLocal(urls);
+//   }
+
 
 
 // static Future<List<String>> downloadVideosToLocal(List<String> urls) async {

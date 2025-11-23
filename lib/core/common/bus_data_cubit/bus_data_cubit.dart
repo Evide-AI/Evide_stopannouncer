@@ -8,6 +8,7 @@ import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/st
 import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_bus_doc_data_usecase.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'bus_data_state.dart';
@@ -29,13 +30,13 @@ class BusDataCubit extends Cubit<BusDataState> {
 
   // Method for getting bus data (including bus name, no, ad_videos and stop_audios)
   Future<void> getBusData({String? pairingCode, bool isLoadingNeeded = true}) async{
-    if(isLoadingNeeded) emit(state.copyWith(status: BusDataStatus.loading));
+    if(isLoadingNeeded) emit(state.copyWith(status: BusDataStatus.loading, busData: state.busData, localVideoPaths: state.localVideoPaths));
     try {
       final savedPairingCode = SharedPrefsServices.getPairingCode();
       // if saved pairing code is null or empty, use the provided pairing code other wise use the saved one
       final res = await getBusDocDataUsecase(params: pairingCode ?? savedPairingCode ?? '');
       await res.fold((failure) {
-        emit(state.copyWith(status: BusDataStatus.error, message: failure.message));
+        emit(state.copyWith(status: BusDataStatus.error, message: failure.message, busData: state.busData, localVideoPaths: state.localVideoPaths));
       }, (busdata) async {
         debugPrint("Status: ${state.status == BusDataStatus.loading}");
         if (busdata != null) {
@@ -45,6 +46,7 @@ class BusDataCubit extends Cubit<BusDataState> {
             SharedPrefsServices.savePairingCodeToLocalStorage(pairingCode: pairingCode ?? '');
           }
           // download videos to local storage and assign paths to localVideoPaths
+          // localVideoPaths = isLoadingNeeded ? await compute(AppCommonMethods.downloadVideosIsolate, busdata.adVideos ?? []) : state.localVideoPaths;
           localVideoPaths = isLoadingNeeded ? await AppCommonMethods.downloadVideosToLocal(busdata.adVideos ?? []) : state.localVideoPaths;
           final oldBusData = state.busData;
           final newBusData = busdata;
@@ -57,11 +59,11 @@ class BusDataCubit extends Cubit<BusDataState> {
           emit(state.copyWith(busData: busdata, localVideoPaths: localVideoPaths, status: BusDataStatus.loaded));
         } else {
           // emit(const BusDataErrorState(message: "Bus data is not found"));
-          emit(state.copyWith(status: BusDataStatus.error));
+          emit(state.copyWith(status: BusDataStatus.error, busData: state.busData, localVideoPaths: state.localVideoPaths));
         }
       },);
     } catch (e) {
-      emit(state.copyWith(status: BusDataStatus.error, message: e.toString()));
+      emit(state.copyWith(status: BusDataStatus.error, message: e.toString(), busData: state.busData, localVideoPaths: state.localVideoPaths));
     }
   }
 
