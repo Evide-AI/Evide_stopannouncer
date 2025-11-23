@@ -98,13 +98,12 @@ class WebSocketServices {
             // Show current stop dialog
             await currentStopDataShowingDialog(
               isCurrentStop: true,
-              isAudioPresent: currentStopAudio != null,
               context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
               stopName: currentStopName,
               stopNameInMalayalam: currentStopNameInMalayalam,
             );
 
-            Future.delayed(Duration(seconds: 10), () async {
+            Future.delayed(Duration(seconds: 15), () async {
               // GETTING NEXT STOP AND STOP ID AND STOP NAME IN MALAYALAM
               StopEntity? nextStop;
               try {
@@ -125,7 +124,6 @@ class WebSocketServices {
               }
                await currentStopDataShowingDialog(
                 isCurrentStop: false,
-                isAudioPresent: nextStopAudio != null,
                 context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
                 stopName: nextStopName,
                 stopNameInMalayalam: nextStopNameInMalayalam,

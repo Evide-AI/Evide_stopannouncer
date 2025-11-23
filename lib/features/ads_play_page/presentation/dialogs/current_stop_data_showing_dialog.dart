@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 Future<dynamic> currentStopDataShowingDialog({
   required BuildContext context,
   required String stopName,
-  required bool isAudioPresent,
   required bool isCurrentStop,
   required String? stopNameInMalayalam,
 }) async {
@@ -77,8 +76,8 @@ Future<dynamic> currentStopDataShowingDialog({
                           "${isCurrentStop ? "Current" : "Next"} Stop",
                           style: AppCommonStyles.commonTextStyle(
                             color: AppColors.kWhite,
-                            fontSize: 8.sp,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 16.sp,
+                            fontFamily: AppAssets.robotoSemiBoldFont,
                             letterSpacing: 0.5,
                           ),
                         ),
