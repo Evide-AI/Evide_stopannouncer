@@ -244,7 +244,7 @@ class AppCommonMethods {
   if (urls.isEmpty) return [];
 
   final appDir = await getApplicationDocumentsDirectory();
-  const validExts = {
+  const validExts = { // valid extensions for video
     '.mp4', '.webm', '.mov', '.mkv', '.avi',
     '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
   };
@@ -258,7 +258,7 @@ class AppCommonMethods {
     try {
       final uri = Uri.parse(url);
       if (uri.isAbsolute) {
-        validUrls.add(url);
+        validUrls.add(url); // collecting valid video urls
       }
     } catch (e) {
       debugPrint("❌ Invalid URL skipped: $url");
@@ -266,7 +266,7 @@ class AppCommonMethods {
   }
 
   debugPrint("📥 Processing ${validUrls.length} valid URLs out of ${urls.length}");
-
+  // method to download each video in url one by one
   Future<String?> downloadSingle(String url, int index) async {
     try {
       final uri = Uri.parse(url);
@@ -324,14 +324,14 @@ class AppCommonMethods {
           await file.parent.create(recursive: true);
 
           // Write file
-          await file.writeAsBytes(response.data!, flush: true);
+          await file.writeAsBytes(response.data!, flush: true); // writing response data as bytes to file
 
           // Validate the downloaded file
           if (await _isValidVideoFile(file)) {
             debugPrint("✅ Successfully saved: $filePath");
             return filePath;
           } else {
-            await file.delete().catchError((_) {});
+            await file.delete().catchError((_) {}); // delete file if not valid
             debugPrint("⚠️ Invalid video file after download: ${uri.pathSegments.last}");
             
             if (attempt == maxRetries) {
@@ -412,10 +412,10 @@ class AppCommonMethods {
   return result;
 }
 
-/// Improved video validation
+/// Improved video validation - method for checking file is valid or not
 static Future<bool> _isValidVideoFile(File file) async {
   try {
-    if (!await file.exists()) return false;
+    if (!await file.exists()) return false; // if not exists return false
 
     final fileSize = await file.length();
     if (fileSize == 0) {
