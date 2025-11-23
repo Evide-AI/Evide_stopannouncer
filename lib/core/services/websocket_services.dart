@@ -104,7 +104,7 @@ class WebSocketServices {
               stopNameInMalayalam: currentStopNameInMalayalam,
             );
 
-            Future.delayed(Duration(seconds: 3), () async {
+            Future.delayed(Duration(seconds: 10), () async {
               // GETTING NEXT STOP AND STOP ID AND STOP NAME IN MALAYALAM
               StopEntity? nextStop;
               try {
