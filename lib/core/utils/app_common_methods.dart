@@ -164,7 +164,7 @@ static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
 
 /// ------------------------------------------------------
 /// VALIDATE VIDEO FILE HEADER
-/// Small videos ALSO ALLOWED   <------- YOUR REQUIREMENT
+/// Small videos ALSO ALLOWED
 /// ------------------------------------------------------
 static Future<bool> _isValidVideoFile(File file) async {
   if (!await file.exists()) return false;

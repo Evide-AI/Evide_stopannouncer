@@ -39,19 +39,20 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
   @override
   void initState() {
     super.initState();
+    // focusnode for key event focusing
     _focusNode = FocusNode();
     WidgetsBinding.instance.addObserver(this);
-    _ensureKioskMode();
-    initializeSocket();
+    _ensureKioskMode(); // enabling kiosk mode
+    initializeSocket(); // initializing socket
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
+      _focusNode.requestFocus(); //requesting focus after widget once builded completely
       setupBusDataListener();
-      context.read<BusDataCubit>().getBusData();
-      setUpSocketListners();
-      socket.connect();
+      context.read<BusDataCubit>().getBusData(); // method for getting bus and its active trip data
+      setUpSocketListners(); // setting up socket listeners
+      socket.connect(); // connecting socket
     });
   }
-
+  // method for join trip after bus data loaded fully (backup method to avoid trip join issue)
   void setupBusDataListener() {
     context.read<BusDataCubit>().stream.listen((state) {
       if (state.status == BusDataStatus.loaded) {
@@ -66,7 +67,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
     });
   }
 
-
+  // setting socket listeners for up-to date data
   void setUpSocketListners() {
    WebSocketServices.connectAndListenToSocket(
       socket: socket, context: context,
@@ -88,7 +89,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
         }
       );
   }
-
+  // initializing socket
   initializeSocket() {
     socket = io.io(
       BackendConstants.webSocketUrl,
@@ -105,6 +106,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
   }
 
   Future<void> _ensureKioskMode() async {
+    // calling method for enable kiosk mode
     if (isKioskEnabled) {
       await KioskModeService.enableKioskMode();
     }
@@ -112,6 +114,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // on app resume, enabling kiosk mode
     if (state == AppLifecycleState.resumed) {
       _ensureKioskMode();
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -135,6 +138,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
   if (_videoList.isEmpty) return;
 
   final videoFile = File(_videoList[index]);
+  // checking video file exits or not, if not skip to next video
   if (!videoFile.existsSync()) {
     log("⚠️ File not found: ${videoFile.path}");
     _skipToNextOnError();
@@ -149,7 +153,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
         showNotification: false,
       ),
     );
-
+    // disposing player controller to avoid memory leaks
     _betterPlayerController?.dispose();
 
     _betterPlayerController = BetterPlayerController(
@@ -166,7 +170,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
       ),
       betterPlayerDataSource: dataSource,
     );
-
+    // setting video volume low as possible
     _betterPlayerController?.setVolume(0.01);
     setState(() {});
   } catch (e) {
@@ -219,7 +223,7 @@ void _skipToNextOnError() async {
     if (inputCode.length > 6) {
       inputCode = inputCode.substring(inputCode.length - 6);
     }
-
+    // if inputcode matches secret key, then will go to device settings access page
     if (inputCode == AppGlobalKeys.appAdminAccessSecretKey) {
       if (mounted) {
         await Navigator.of(context).push(
@@ -263,7 +267,7 @@ void _skipToNextOnError() async {
             if (state.localVideoPaths.isNotEmpty) {
               _videoList = state.localVideoPaths;
             }
-            // Start streaming video updates
+            // Start streaming video audio updates from firebase
             if (mounted) {
               context.read<BusDataCubit>().getVideosAndAudiosToPlay();
             }

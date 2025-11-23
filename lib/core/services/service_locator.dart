@@ -7,7 +7,6 @@ import 'package:evide_stop_announcer_app/core/common/bus_data_domain/bus_data_re
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_active_trip_data_usecase.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_bus_doc_data_usecase.dart';
 import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
-import 'package:evide_stop_announcer_app/features/stop_announcer_parent_screen/presentation/cubit/stop_announcer_parent_screen_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/stream_bus_videos_usecase.dart';
 import 'package:evide_stop_announcer_app/core/services/api_service.dart';
@@ -19,15 +18,7 @@ Future<void> initDependencies() async {
   serviceLocator.registerLazySingleton(() => FirebaseFirestore.instance);
   serviceLocator.registerLazySingleton(() => Dio());
   serviceLocator.registerFactory<ApiService>(() => ApiService(),);
-  initHomeDependencies();
   initBusDataDependencies();
-}
-
-
-initHomeDependencies() {
-  serviceLocator.registerFactory<StopAnnouncerParentScreenCubit>(() {
-    return StopAnnouncerParentScreenCubit();
-  },);
 }
 
 initBusDataDependencies() {

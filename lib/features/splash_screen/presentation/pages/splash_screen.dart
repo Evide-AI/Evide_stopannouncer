@@ -17,7 +17,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(Duration(seconds: 6), () async {
-        // if paired go to add videos list page or playing page
+        // if paired go to add videos playing page
         if (mounted) {
           await AppGlobalKeys.navigatorKey.currentState?.pushAndRemoveUntil(MaterialPageRoute(builder: (context) {
             return AdsPlayPage();
