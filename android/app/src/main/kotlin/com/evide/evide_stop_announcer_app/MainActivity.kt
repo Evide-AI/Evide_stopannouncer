@@ -38,7 +38,7 @@ class MainActivity : FlutterActivity() {
         super.onCreate(savedInstanceState)
         setupFullscreen()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        requestBatteryOptimization()
+        // requestBatteryOptimization()
         startAppMonitoringService()
     }
 
