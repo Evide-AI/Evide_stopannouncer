@@ -92,17 +92,18 @@ class WebSocketServices {
             log("🎵 Current Stop Audio: $currentStopAudio");
 
             // Play current audio
-            if (currentStopAudio != null) {
+            if (currentStopAudio != null && currentStopSequenceNumber != 1) {
               playStopAudioAndHandleVideoVolume(audioUrl: currentStopAudio);
             }
-            // Show current stop dialog
-            await currentStopDataShowingDialog(
-              isCurrentStop: true,
-              context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-              stopName: currentStopName,
-              stopNameInMalayalam: currentStopNameInMalayalam,
-            );
-
+            if (currentStopSequenceNumber != 1) {
+              // Show current stop dialog
+              await currentStopDataShowingDialog(
+                isCurrentStop: true,
+                context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+                stopName: currentStopName,
+                stopNameInMalayalam: currentStopNameInMalayalam,
+              );
+            }
             Future.delayed(Duration(seconds: 15), () async {
               // GETTING NEXT STOP AND STOP ID AND STOP NAME IN MALAYALAM
               StopEntity? nextStop;
@@ -118,7 +119,8 @@ class WebSocketServices {
               final nextStopId = nextStop?.stopId?.toString();
               final nextStopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[nextStopId]; //getting next stop audio and name containing map
               final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"]; // getting next stop name in malayalam
-              final nextStopAudio = nextStopAudioMap?["stop_audio_url"]; //getting next stop audio url
+              // final nextStopAudio = nextStopAudioMap?["stop_audio_url"]; //getting next stop audio url
+              final nextStopAudio = stopAudioMap?["next_stop_audio"]; //getting next stop audio url
 
               if (nextStopAudio != null) { //if next stop audio not null, will play the audio
                 playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
