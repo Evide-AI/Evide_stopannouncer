@@ -120,7 +120,7 @@ class WebSocketServices {
               final nextStopAudioMap = context.read<BusDataCubit>().state.busData.stopAudios?[nextStopId]; //getting next stop audio and name containing map
               final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"]; // getting next stop name in malayalam
               // final nextStopAudio = nextStopAudioMap?["stop_audio_url"]; //getting next stop audio url
-              final nextStopAudio = stopAudioMap?["next_stop_audio"]; //getting next stop audio url
+              final nextStopAudio = nextStopAudioMap?["next_stop_audio"];  //getting next stop audio url
 
               if (nextStopAudio != null) { //if next stop audio not null, will play the audio
                 playStopAudioAndHandleVideoVolume(audioUrl: nextStopAudio);
