@@ -239,224 +239,271 @@ class AppCommonMethods {
     await fallbackIntent.launch();
   }
 
-
   static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
   if (urls.isEmpty) return [];
 
   final appDir = await getApplicationDocumentsDirectory();
-  const validExts = { // valid extensions for video
-    '.mp4', '.webm', '.mov', '.mkv', '.avi',
-    '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
-  };
+  final dio = serviceLocator<Dio>();
 
-  const maxRetries = 3;
-  const batchSize = 3;
+  List<String> downloadedPaths = [];
 
-  // Filter out invalid URLs first
-  final validUrls = <String>[];
-  for (final url in urls) {
+  for (int i = 0; i < urls.length; i++) {
+    final url = urls[i];
+
     try {
       final uri = Uri.parse(url);
-      if (uri.isAbsolute) {
-        validUrls.add(url); // collecting valid video urls
+      String fileName = uri.pathSegments.isNotEmpty
+          ? uri.pathSegments.last
+          : "video_$i.mp4";
+
+      // Ensure extension
+      if (!fileName.contains(".")) {
+        fileName = "$fileName.mp4";
       }
-    } catch (e) {
-      debugPrint("❌ Invalid URL skipped: $url");
-    }
-  }
 
-  debugPrint("📥 Processing ${validUrls.length} valid URLs out of ${urls.length}");
-  // method to download each video in url one by one
-  Future<String?> downloadSingle(String url, int index) async {
-    try {
-      final uri = Uri.parse(url);
-      final hashed = md5.convert(url.codeUnits).toString();
-
-      String fileName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : "video_$index.mp4";
-      fileName = fileName.split("%2F").last;
-
-      String ext = p.extension(fileName).toLowerCase();
-      if (!validExts.contains(ext)) ext = ".mp4";
-
-      final filePath = p.join(appDir.path, "$hashed$ext");
+      final filePath = p.join(appDir.path, fileName);
       final file = File(filePath);
 
-      // -------------------------------
-      // CACHE VALIDATION
-      // -------------------------------
-      if (await file.exists()) {
-        debugPrint("🔍 Checking cache for: ${uri.pathSegments.last}");
-        if (await _isValidVideoFile(file)) {
-          debugPrint("✅ Using cached file: $filePath");
-          return filePath;
-        } else {
-          debugPrint("🗑️ Deleting invalid cached file");
-          await file.delete().catchError((e) {
-            debugPrint("⚠️ Error deleting cached file: $e");
-          });
-        }
-      }
-
-      // -------------------------------
-      // DOWNLOAD WITH RETRIES
-      // -------------------------------
-      for (int attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          debugPrint("⬇️ Downloading attempt $attempt for: ${uri.pathSegments.last}");
-
-          final response = await serviceLocator<Dio>().get<List<int>>(
-            url,
-            options: Options(
-              responseType: ResponseType.bytes,
-              followRedirects: true,
-              receiveTimeout: const Duration(seconds: 30), // Increased timeout
-              sendTimeout: const Duration(seconds: 30),
-            ),
-          );
-
-          if (response.statusCode != 200 || response.data == null) {
-            throw Exception("HTTP ${response.statusCode}");
-          }
-
-          debugPrint("✅ Downloaded ${response.data!.length} bytes for: ${uri.pathSegments.last}");
-
-          // Create directory if it doesn't exist
-          await file.parent.create(recursive: true);
-
-          // Write file
-          await file.writeAsBytes(response.data!, flush: true); // writing response data as bytes to file
-
-          // Validate the downloaded file
-          if (await _isValidVideoFile(file)) {
-            debugPrint("✅ Successfully saved: $filePath");
-            return filePath;
-          } else {
-            await file.delete().catchError((_) {}); // delete file if not valid
-            debugPrint("⚠️ Invalid video file after download: ${uri.pathSegments.last}");
-            
-            if (attempt == maxRetries) {
-              debugPrint("❌ Failed to download valid video after $maxRetries attempts: $url");
-              return null;
-            }
-          }
-
-        } catch (e) {
-          debugPrint("⚠️ Download attempt $attempt failed for ${uri.pathSegments.last}: $e");
-
-          if (attempt == maxRetries) {
-            debugPrint("❌ All download attempts failed for: $url");
-            return null;
-          }
-
-          // Exponential backoff
-          await Future.delayed(Duration(seconds: 1 * attempt));
-        }
-      }
-
-      return null;
-    } catch (e) {
-      debugPrint("💥 Unexpected error downloading $url: $e");
-      return null;
-    }
-  }
-
-  // -------------------------------
-  // PROCESS IN PARALLEL WITH BETTER ERROR HANDLING
-  // -------------------------------
-  List<String> result = [];
-  int successfulDownloads = 0;
-  int failedDownloads = 0;
-
-  for (int i = 0; i < validUrls.length; i += batchSize) {
-    final endIndex = i + batchSize < validUrls.length ? i + batchSize : validUrls.length;
-    final batchUrls = validUrls.sublist(i, endIndex);
-
-    debugPrint("🔄 Processing batch ${(i ~/ batchSize) + 1}: ${batchUrls.length} items");
-
-    try {
-      final batchFutures = <Future<String?>>[];
-      for (int j = 0; j < batchUrls.length; j++) {
-        batchFutures.add(downloadSingle(batchUrls[j], i + j));
-      }
-
-      final batchResults = await Future.wait(
-        batchFutures,
-        eagerError: false,
+      // ---- DOWNLOAD FILE ----
+      final response = await dio.get<List<int>>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
       );
 
-      for (final batchResult in batchResults) {
-        if (batchResult != null) {
-          result.add(batchResult);
-          successfulDownloads++;
-        } else {
-          failedDownloads++;
-        }
+      if (response.statusCode == 200 && response.data != null) {
+        await file.writeAsBytes(response.data!, flush: true);
+        downloadedPaths.add(filePath);
+        debugPrint("✅ Saved: $filePath");
+      } else {
+        debugPrint("❌ Failed to download $url");
       }
-
-      debugPrint("📊 Batch completed: ${batchResults.where((r) => r != null).length}/${batchUrls.length} successful");
-
     } catch (e) {
-      debugPrint("💥 Batch processing error: $e");
-      failedDownloads += batchUrls.length;
-    }
-
-    // Small delay between batches to avoid overwhelming the system
-    if (endIndex < validUrls.length) {
-      await Future.delayed(const Duration(milliseconds: 100));
+      debugPrint("⚠️ Download error for $url : $e");
     }
   }
 
-  debugPrint("🎉 Download completed: $successfulDownloads successful, $failedDownloads failed");
-  debugPrint("✅ Final result: ${result.length} videos downloaded");
-
-  return result;
+  return downloadedPaths;
 }
 
-/// Improved video validation - method for checking file is valid or not
-static Future<bool> _isValidVideoFile(File file) async {
-  try {
-    if (!await file.exists()) return false; // if not exists return false
 
-    final fileSize = await file.length();
-    if (fileSize == 0) {
-      debugPrint("⚠️ File is empty: ${file.path}");
-      return false;
-    }
 
-    final raf = await file.open();
-    try {
-      final header = await raf.read(128); // Read more bytes for better detection
-      await raf.close();
+//   static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
+//   if (urls.isEmpty) return [];
 
-      if (header.isEmpty) return false;
+//   final appDir = await getApplicationDocumentsDirectory();
+//   const validExts = { // valid extensions for video
+//     '.mp4', '.webm', '.mov', '.mkv', '.avi',
+//     '.flv', '.wmv', '.3gp', '.m4v', '.ts', '.ogv'
+//   };
 
-      final headerStr = String.fromCharCodes(header).toLowerCase();
+//   const maxRetries = 3;
+//   const batchSize = 3;
 
-      // More comprehensive video file signatures
-      final hasValidSignature = headerStr.contains("ftyp") ||
-          headerStr.contains("isom") ||
-          headerStr.contains("mdat") ||
-          headerStr.contains("moov") ||
-          headerStr.contains("webm") ||
-          headerStr.contains("matroska") ||
-          headerStr.contains("avc1") ||
-          headerStr.contains("mp4") ||
-          headerStr.contains("mov");
+//   // Filter out invalid URLs first
+//   final validUrls = <String>[];
+//   for (final url in urls) {
+//     try {
+//       final uri = Uri.parse(url);
+//       if (uri.isAbsolute) {
+//         validUrls.add(url); // collecting valid video urls
+//       }
+//     } catch (e) {
+//       debugPrint("❌ Invalid URL skipped: $url");
+//     }
+//   }
 
-      if (!hasValidSignature) {
-        debugPrint("⚠️ Invalid video signature in: ${file.path}");
-        // Debug: print first few bytes for analysis
-        debugPrint("🔍 First 32 bytes: ${header.sublist(0, min(32, header.length))}");
-      }
+//   debugPrint("📥 Processing ${validUrls.length} valid URLs out of ${urls.length}");
+//   // method to download each video in url one by one
+//   Future<String?> downloadSingle(String url, int index) async {
+//     try {
+//       final uri = Uri.parse(url);
+//       final hashed = md5.convert(url.codeUnits).toString();
 
-      return hasValidSignature;
-    } catch (e) {
-      await raf.close();
-      return false;
-    }
-  } catch (e) {
-    debugPrint("💥 Error validating video file: $e");
-    return false;
-  }
-}
+//       String fileName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : "video_$index.mp4";
+//       fileName = fileName.split("%2F").last;
+
+//       String ext = p.extension(fileName).toLowerCase();
+//       if (!validExts.contains(ext)) ext = ".mp4";
+
+//       final filePath = p.join(appDir.path, "$hashed$ext");
+//       final file = File(filePath);
+
+//       // -------------------------------
+//       // CACHE VALIDATION
+//       // -------------------------------
+//       if (await file.exists()) {
+//         debugPrint("🔍 Checking cache for: ${uri.pathSegments.last}");
+//         if (await _isValidVideoFile(file)) {
+//           debugPrint("✅ Using cached file: $filePath");
+//           return filePath;
+//         } else {
+//           debugPrint("🗑️ Deleting invalid cached file");
+//           await file.delete().catchError((e) {
+//             debugPrint("⚠️ Error deleting cached file: $e");
+//           });
+//         }
+//       }
+
+//       // -------------------------------
+//       // DOWNLOAD WITH RETRIES
+//       // -------------------------------
+//       for (int attempt = 1; attempt <= maxRetries; attempt++) {
+//         try {
+//           debugPrint("⬇️ Downloading attempt $attempt for: ${uri.pathSegments.last}");
+
+//           final response = await serviceLocator<Dio>().get<List<int>>(
+//             url,
+//             options: Options(
+//               responseType: ResponseType.bytes,
+//               followRedirects: true,
+//               receiveTimeout: const Duration(seconds: 30), // Increased timeout
+//               sendTimeout: const Duration(seconds: 30),
+//             ),
+//           );
+
+//           if (response.statusCode != 200 || response.data == null) {
+//             throw Exception("HTTP ${response.statusCode}");
+//           }
+
+//           debugPrint("✅ Downloaded ${response.data!.length} bytes for: ${uri.pathSegments.last}");
+
+//           // Create directory if it doesn't exist
+//           await file.parent.create(recursive: true);
+
+//           // Write file
+//           await file.writeAsBytes(response.data!, flush: true); // writing response data as bytes to file
+
+//           // Validate the downloaded file
+//           if (await _isValidVideoFile(file)) {
+//             debugPrint("✅ Successfully saved: $filePath");
+//             return filePath;
+//           } else {
+//             await file.delete().catchError((_) {}); // delete file if not valid
+//             debugPrint("⚠️ Invalid video file after download: ${uri.pathSegments.last}");
+            
+//             if (attempt == maxRetries) {
+//               debugPrint("❌ Failed to download valid video after $maxRetries attempts: $url");
+//               return null;
+//             }
+//           }
+
+//         } catch (e) {
+//           debugPrint("⚠️ Download attempt $attempt failed for ${uri.pathSegments.last}: $e");
+
+//           if (attempt == maxRetries) {
+//             debugPrint("❌ All download attempts failed for: $url");
+//             return null;
+//           }
+
+//           // Exponential backoff
+//           await Future.delayed(Duration(seconds: 1 * attempt));
+//         }
+//       }
+
+//       return null;
+//     } catch (e) {
+//       debugPrint("💥 Unexpected error downloading $url: $e");
+//       return null;
+//     }
+//   }
+
+//   // -------------------------------
+//   // PROCESS IN PARALLEL WITH BETTER ERROR HANDLING
+//   // -------------------------------
+//   List<String> result = [];
+//   int successfulDownloads = 0;
+//   int failedDownloads = 0;
+
+//   for (int i = 0; i < validUrls.length; i += batchSize) {
+//     final endIndex = i + batchSize < validUrls.length ? i + batchSize : validUrls.length;
+//     final batchUrls = validUrls.sublist(i, endIndex);
+
+//     debugPrint("🔄 Processing batch ${(i ~/ batchSize) + 1}: ${batchUrls.length} items");
+
+//     try {
+//       final batchFutures = <Future<String?>>[];
+//       for (int j = 0; j < batchUrls.length; j++) {
+//         batchFutures.add(downloadSingle(batchUrls[j], i + j));
+//       }
+
+//       final batchResults = await Future.wait(
+//         batchFutures,
+//         eagerError: false,
+//       );
+
+//       for (final batchResult in batchResults) {
+//         if (batchResult != null) {
+//           result.add(batchResult);
+//           successfulDownloads++;
+//         } else {
+//           failedDownloads++;
+//         }
+//       }
+
+//       debugPrint("📊 Batch completed: ${batchResults.where((r) => r != null).length}/${batchUrls.length} successful");
+
+//     } catch (e) {
+//       debugPrint("💥 Batch processing error: $e");
+//       failedDownloads += batchUrls.length;
+//     }
+
+//     // Small delay between batches to avoid overwhelming the system
+//     if (endIndex < validUrls.length) {
+//       await Future.delayed(const Duration(milliseconds: 100));
+//     }
+//   }
+
+//   debugPrint("🎉 Download completed: $successfulDownloads successful, $failedDownloads failed");
+//   debugPrint("✅ Final result: ${result.length} videos downloaded");
+
+//   return result;
+// }
+
+// /// Improved video validation - method for checking file is valid or not
+// static Future<bool> _isValidVideoFile(File file) async {
+//   try {
+//     if (!await file.exists()) return false; // if not exists return false
+
+//     final fileSize = await file.length();
+//     if (fileSize == 0) {
+//       debugPrint("⚠️ File is empty: ${file.path}");
+//       return false;
+//     }
+
+//     final raf = await file.open();
+//     try {
+//       final header = await raf.read(128); // Read more bytes for better detection
+//       await raf.close();
+
+//       if (header.isEmpty) return false;
+
+//       final headerStr = String.fromCharCodes(header).toLowerCase();
+
+//       // More comprehensive video file signatures
+//       final hasValidSignature = headerStr.contains("ftyp") ||
+//           headerStr.contains("isom") ||
+//           headerStr.contains("mdat") ||
+//           headerStr.contains("moov") ||
+//           headerStr.contains("webm") ||
+//           headerStr.contains("matroska") ||
+//           headerStr.contains("avc1") ||
+//           headerStr.contains("mp4") ||
+//           headerStr.contains("mov");
+
+//       if (!hasValidSignature) {
+//         debugPrint("⚠️ Invalid video signature in: ${file.path}");
+//         // Debug: print first few bytes for analysis
+//         debugPrint("🔍 First 32 bytes: ${header.sublist(0, min(32, header.length))}");
+//       }
+
+//       return hasValidSignature;
+//     } catch (e) {
+//       await raf.close();
+//       return false;
+//     }
+//   } catch (e) {
+//     debugPrint("💥 Error validating video file: $e");
+//     return false;
+//   }
+// }
 }
