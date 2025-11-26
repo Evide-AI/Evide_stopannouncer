@@ -117,7 +117,7 @@ class BusDataCubit extends Cubit<BusDataState> {
   }
 
   // get only active trip data
-  Future<TimeLineEntity?> getActiveTripData({required int busId}) async {
+  Future<TimeLineEntity?> getActiveTripData({required int? busId}) async {
     try {
       final res = await getActiveTripDataUsecase(params: busId);
       return res.fold((failure) {
