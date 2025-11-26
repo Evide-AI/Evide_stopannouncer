@@ -4,9 +4,10 @@ import 'dart:developer';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
-import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
+import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -16,10 +17,6 @@ class WebSocketServices {
   static Timer? tripCheckerTimer;
   static int? currentActiveTripId;
   static double? totalDistanceToNextStop;
-  static bool isNextStopAlreadyShown = false;
-  static bool isSecondUpdateFromGpsAfterCurrentStopReached = false;
-  static int? lastShownNextStopSequence;
-
 
 
   static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required AudioPlayer audioPlayer}) {
@@ -34,7 +31,7 @@ class WebSocketServices {
         socket.emit('join-trip', {'tripId': tripId});
       }
       // starting trip watch of the bus
-      startTripWatcher(context: context, socket: socket);
+      startTripWatcher(context: context, socket: socket, busId: busData.busId);
     });
 
     // if joined trip
@@ -65,6 +62,7 @@ class WebSocketServices {
       final nextstopSequenceNumber = jsonData["next_stop_sequence_number"];
       final currentStopName = jsonData["current_stop_name"];
       final nextStopName = jsonData["next_stop_name"];
+      // final distanceToNextStopInMeters = jsonData["distance_to_next_stop_meters"];
       log("📍 location data: $jsonData");
       try {
         final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
@@ -79,22 +77,18 @@ class WebSocketServices {
 
             // Prevent repeating for same stop
             if (lastShownStopSequence == currentStopSequenceNumber) return; //if lastShownStopSequence and currentStopSequenceNumber matches then return from this loop
-            lastShownNextStopSequence = null;
+
             lastShownStopSequence = currentStopSequenceNumber; // assigning current stop sequence number to lastShownStopSequence
             // ----------------------------------------------------
             // GET CURRENT STOP DATA
             // ----------------------------------------------------
-            if (currentStopSequenceNumber != 1) {
-              processCurrentStopAudioAndDialog(busData: busData, stopId: stop.stopId?.toString(), currentStopName: currentStopName, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume);
-            }
-            Future.delayed(Duration(seconds: 15), () async {
-              if (lastShownNextStopSequence == nextstopSequenceNumber) return;
-              lastShownNextStopSequence = nextstopSequenceNumber;
-              processNextStopAudioAndDialog(stops: stops, nextstopSequenceNumber: nextstopSequenceNumber, busData: busData, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume, nextStopName: nextStopName);
+            processCurrentStopAudioAndDialog(stopId: stop.stopId?.toString(), busData: busData, currentStopName: currentStopName, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume);
+            // Next stop
+            Future.delayed(Duration(seconds: 15), () {
+              processNextStopAudioAndDialog(nextStopName: nextStopName, stops: stops, nextstopSequenceNumber: nextstopSequenceNumber, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume, busData: busData);
             },);
             // setting current stop sequence number to lastShownStopSequence (It is for avoid again showing dialog for current stop even if new update come for the same stop)
             lastShownStopSequence = currentStopSequenceNumber;
-            isNextStopAlreadyShown = false;
           }
         }
       } catch (e) {
@@ -128,31 +122,31 @@ class WebSocketServices {
     });
   }
 
-  static void processCurrentStopAudioAndDialog({
-    required BusDataEntity  busData,
-    required String? stopId,
-    required String currentStopName,
+    static void processCurrentStopAudioAndDialog({
+    required String? stopId, required BusDataEntity busData,required String currentStopName,
     required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
-  }) async {
+
+  }) {
     final stopAudioMap = busData.stopAudios?[stopId]; // getting current stop audio map
     final currentStopAudio = stopAudioMap?["stop_audio_url"]; // getting current stop audio
     final currentStopNameInMalayalam = stopAudioMap?["stop_name"]; // getting current stop name in malayalam
     log("🎵 Current Stop Audio: $currentStopAudio");
-    // Play current audio
     getStopAudioAndDialog(
       stopAudio: currentStopAudio,
+      stopName: currentStopName,
+      stopNameInMalayalam: currentStopNameInMalayalam,
       playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume,
-      stopNameInEnglish: currentStopName, stopNameInMalayalam: currentStopNameInMalayalam,
+      isCurrentStop: true,
     );
   }
 
-  static Future<void> processNextStopAudioAndDialog({
+  static void processNextStopAudioAndDialog({
+    required String nextStopName,
     required List<StopEntity> stops,
     required int nextstopSequenceNumber,
-    required BusDataEntity busData,
     required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
-    required String nextStopName
-  }) async {
+    required BusDataEntity busData,
+  }) {
     // GETTING NEXT STOP AND STOP ID AND STOP NAME IN MALAYALAM
     StopEntity? nextStop;
     try {
@@ -163,27 +157,36 @@ class WebSocketServices {
       // firstWhere throws StateError if no element found
       nextStop = null;
     }
-    final nextStopId = nextStop?.stopId?.toString(); // getting next stop id
+    // getting next stop id
+    final nextStopId = nextStop?.stopId?.toString();
     final nextStopAudioMap = busData.stopAudios?[nextStopId]; //getting next stop audio and name containing map
     final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"]; // getting next stop name in malayalam
     final nextStopAudio = nextStopAudioMap?["next_stop_audio"];  //getting next stop audio url
-
     getStopAudioAndDialog(
       stopAudio: nextStopAudio,
+      stopName: nextStopName,
+      stopNameInMalayalam: nextStopNameInMalayalam,
       playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume,
-      stopNameInEnglish: nextStopName, stopNameInMalayalam: nextStopNameInMalayalam,
+      isCurrentStop: false,
     );
   }
 
-  static void getStopAudioAndDialog({required stopAudio, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required String stopNameInEnglish, required String stopNameInMalayalam}) async {
-    if (stopAudio != null) { //if next stop audio not null, will play the audio
+
+  static void getStopAudioAndDialog({
+    required String? stopAudio,
+    required String stopName,
+    required String stopNameInMalayalam,
+    required bool isCurrentStop,
+    required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
+  }) {
+    if (stopAudio != null) { //if stop audio not null, will play the audio
       playStopAudioAndHandleVideoVolume(audioUrl: stopAudio);
     }
-    // showing next stop dialog
-    await currentStopDataShowingDialog(
-      isCurrentStop: false,
+    // showing stop dialog
+    currentStopDataShowingDialog(
+      isCurrentStop: isCurrentStop,
       context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
-      stopName: stopNameInEnglish,
+      stopName: stopName,
       stopNameInMalayalam: stopNameInMalayalam,
     );
   }
@@ -192,18 +195,41 @@ class WebSocketServices {
   // if there is any trip active and it is not joined via socket to the room,
   // it will join the room with new trip id and
   // continues listening to the updates coming from the socket
-  static void startTripWatcher({required BuildContext context, required io.Socket socket}) {
+  static void startTripWatcher({required BuildContext context, required io.Socket socket, required int? busId}) {
     // Cancel previous watcher if any
     tripCheckerTimer?.cancel();
 
+    // tripCheckerTimer = Timer.periodic(const Duration(seconds: 40), (_) async {
+    //   final busDataCubit = context.read<BusDataCubit>();
+
+    //   // Fetch the bus and its active trip data
+    //   await busDataCubit.getBusData(isLoadingNeeded: false);
+
+    //   final busData = busDataCubit.state.busData;
+    //   final newActiveTripId = busData.activeTripTimelineModel?.tripDetails?.id;
+
+    //   // No active trip at the moment
+    //   if (newActiveTripId == null) {
+    //     log("🟡 No active trip for this bus currently.");
+    //     currentActiveTripId = null;
+    //     return;
+    //   }
+
+    //   // If trip is same then nothing to do
+    //   if (currentActiveTripId == newActiveTripId) return;
+
+    //   // Trip changed then join new room
+    //   currentActiveTripId = newActiveTripId;
+
+    //   log("🟢 New active trip detected → joining tripId: $newActiveTripId");
+
+    //   socket.emit("join-trip", {"tripId": newActiveTripId});
+    // });
     tripCheckerTimer = Timer.periodic(const Duration(seconds: 40), (_) async {
-      final busDataCubit = context.read<BusDataCubit>();
+      // Fetch active trip data
+      final activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: busId);
 
-      // Fetch the bus and its active trip data
-      await busDataCubit.getBusData(isLoadingNeeded: false);
-
-      final busData = busDataCubit.state.busData;
-      final newActiveTripId = busData.activeTripTimelineModel?.tripDetails?.id;
+      final int? newActiveTripId = activeTripData?.tripDetails?.id;
 
       // No active trip at the moment
       if (newActiveTripId == null) {

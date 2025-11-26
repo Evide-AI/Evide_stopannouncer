@@ -16,7 +16,7 @@ import 'package:evide_stop_announcer_app/core/services/api_reponse.dart';
 
 abstract class BusData {
   Future<BusDataEntity?> getBusDocData({required String busPairingCode});
-  Future<TimeLineModel> getActiveTripData({required int busId});
+  Future<TimeLineModel> getActiveTripData({required int? busId});
   // Stream<List<String>> streamBusVideos({required String busPairingCode});
   Stream<AudioVideoModel>? streamBusVideosAndAudios({required String busPairingCode});
 }
@@ -147,8 +147,11 @@ class BusDataImpl implements BusData {
   }
   
   @override
-  Future<TimeLineModel> getActiveTripData({required int busId}) async {
+  Future<TimeLineModel> getActiveTripData({required int? busId}) async {
     try {
+      if (busId == null) {
+        throw Failure(message: "Bus Id is null, No trip data found");
+      }
       // get all trips by bus id
       final allTrips = await getAllTripsByBusId(busId: busId);
       // if all trips is not empty, filter active trips

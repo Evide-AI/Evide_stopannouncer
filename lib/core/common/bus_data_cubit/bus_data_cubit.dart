@@ -7,6 +7,7 @@ import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/ge
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/stream_bus_videos_usecase.dart';
 import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_bus_doc_data_usecase.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -112,6 +113,23 @@ class BusDataCubit extends Cubit<BusDataState> {
       emit(state.copyWith(
         message: e.toString(), 
       ));
+    }
+  }
+
+  // get only active trip data
+  Future<TimeLineEntity?> getActiveTripData({required int? busId}) async {
+    try {
+      final res = await getActiveTripDataUsecase(params: busId);
+      return res.fold((failure) {
+        debugPrint("⚠️ Failure on finding active trip data: ${failure.message}");
+        return null;
+      }, (activeTripData) {
+        debugPrint("Bus active trip data found: ${activeTripData.tripDetails?.id}");
+        return activeTripData;
+      },);
+    } catch (e) {
+      debugPrint("⚠️ Exception happen on finding active trip: ${e.toString()}");
+      return null;
     }
   }
 }
