@@ -198,7 +198,7 @@ class WebSocketServices {
   // if there is any trip active and it is not joined via socket to the room,
   // it will join the room with new trip id and
   // continues listening to the updates coming from the socket
-  static void startTripWatcher({required BuildContext context, required io.Socket socket}) {
+  static void startTripWatcher({required BuildContext context, required io.Socket socket, required int? busId}) {
     // Cancel previous watcher if any
     tripCheckerTimer?.cancel();
 
