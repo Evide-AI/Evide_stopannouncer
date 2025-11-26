@@ -7,6 +7,7 @@ import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cub
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
+import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -201,14 +202,37 @@ class WebSocketServices {
     // Cancel previous watcher if any
     tripCheckerTimer?.cancel();
 
+    // tripCheckerTimer = Timer.periodic(const Duration(seconds: 40), (_) async {
+    //   final busDataCubit = context.read<BusDataCubit>();
+
+    //   // Fetch the bus and its active trip data
+    //   await busDataCubit.getBusData(isLoadingNeeded: false);
+
+    //   final busData = busDataCubit.state.busData;
+    //   final newActiveTripId = busData.activeTripTimelineModel?.tripDetails?.id;
+
+    //   // No active trip at the moment
+    //   if (newActiveTripId == null) {
+    //     log("🟡 No active trip for this bus currently.");
+    //     currentActiveTripId = null;
+    //     return;
+    //   }
+
+    //   // If trip is same then nothing to do
+    //   if (currentActiveTripId == newActiveTripId) return;
+
+    //   // Trip changed then join new room
+    //   currentActiveTripId = newActiveTripId;
+
+    //   log("🟢 New active trip detected → joining tripId: $newActiveTripId");
+
+    //   socket.emit("join-trip", {"tripId": newActiveTripId});
+    // });
     tripCheckerTimer = Timer.periodic(const Duration(seconds: 40), (_) async {
-      final busDataCubit = context.read<BusDataCubit>();
+      // Fetch active trip data
+      final activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: busId);
 
-      // Fetch the bus and its active trip data
-      await busDataCubit.getBusData(isLoadingNeeded: false);
-
-      final busData = busDataCubit.state.busData;
-      final newActiveTripId = busData.activeTripTimelineModel?.tripDetails?.id;
+      final int? newActiveTripId = activeTripData?.tripDetails?.id;
 
       // No active trip at the moment
       if (newActiveTripId == null) {
