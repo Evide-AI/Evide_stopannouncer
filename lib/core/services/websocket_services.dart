@@ -133,7 +133,13 @@ class WebSocketServices {
     final currentStopAudio = stopAudioMap?["stop_audio_url"]; // getting current stop audio
     final currentStopNameInMalayalam = stopAudioMap?["stop_name"]; // getting current stop name in malayalam
     log("🎵 Current Stop Audio: $currentStopAudio");
-    getStopAudioAndDialog(stopAudio: currentStopAudio, stopName: currentStopName, stopNameInMalayalam: currentStopNameInMalayalam, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume);
+    getStopAudioAndDialog(
+      stopAudio: currentStopAudio,
+      stopName: currentStopName,
+      stopNameInMalayalam: currentStopNameInMalayalam,
+      playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume,
+      isCurrentStop: true,
+    );
   }
 
   static void processNextStopAudioAndDialog({
@@ -158,7 +164,13 @@ class WebSocketServices {
     final nextStopAudioMap = busData.stopAudios?[nextStopId]; //getting next stop audio and name containing map
     final nextStopNameInMalayalam = nextStopAudioMap?["stop_name"]; // getting next stop name in malayalam
     final nextStopAudio = nextStopAudioMap?["next_stop_audio"];  //getting next stop audio url
-    getStopAudioAndDialog(stopAudio: nextStopAudio, stopName: nextStopName, stopNameInMalayalam: nextStopNameInMalayalam, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume);
+    getStopAudioAndDialog(
+      stopAudio: nextStopAudio,
+      stopName: nextStopName,
+      stopNameInMalayalam: nextStopNameInMalayalam,
+      playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume,
+      isCurrentStop: false,
+    );
   }
 
 
@@ -166,6 +178,7 @@ class WebSocketServices {
     required String? stopAudio,
     required String stopName,
     required String stopNameInMalayalam,
+    required bool isCurrentStop,
     required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
   }) {
     if (stopAudio != null) { //if stop audio not null, will play the audio
@@ -173,7 +186,7 @@ class WebSocketServices {
     }
     // showing stop dialog
     currentStopDataShowingDialog(
-      isCurrentStop: false,
+      isCurrentStop: isCurrentStop,
       context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
       stopName: stopName,
       stopNameInMalayalam: stopNameInMalayalam,
