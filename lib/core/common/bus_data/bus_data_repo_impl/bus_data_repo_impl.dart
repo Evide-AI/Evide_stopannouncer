@@ -25,7 +25,7 @@ class BusDataRepoImpl implements BusDataRepo{
   }
 
    @override
-  Future<Either<Failure, TimeLineModel>> getActiveTripData({required int busId}) async {
+  Future<Either<Failure, TimeLineModel>> getActiveTripData({required int? busId}) async {
     try {
       final res = await busData.getActiveTripData(busId: busId);
       if (res != null) {
