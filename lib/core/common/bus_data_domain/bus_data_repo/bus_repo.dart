@@ -6,7 +6,7 @@ import 'package:fpdart/fpdart.dart';
 
 abstract class BusDataRepo {
   Future<Either<Failure, BusDataEntity?>> getBusDocData({required String busPairingCode});
-  Future<Either<Failure, TimeLineEntity>> getActiveTripData({required int busId});
+  Future<Either<Failure, TimeLineEntity>> getActiveTripData({required int? busId});
   // Stream<Either<Failure, List<String>>> streamBusVideos({required String busPairingCode});
   Stream<Either<Failure, AudioVideoModel>> streamBusVideosAndAudios({required String busPairingCode});
 }
