@@ -9,7 +9,6 @@ import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dar
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_bus_doc_data_usecase.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'bus_data_state.dart';
@@ -28,6 +27,7 @@ class BusDataCubit extends Cubit<BusDataState> {
   }) : super(BusDataCubitInitial());
 
   StreamSubscription? _videoStreamSub;
+  TimeLineEntity? activeTripTimelineModel;
 
   // Method for getting bus data (including bus name, no, ad_videos and stop_audios)
   Future<void> getBusData({String? pairingCode, bool isLoadingNeeded = true}) async{
@@ -48,7 +48,7 @@ class BusDataCubit extends Cubit<BusDataState> {
           }
           // download videos to local storage and assign paths to localVideoPaths
           // localVideoPaths = isLoadingNeeded ? await compute(AppCommonMethods.downloadVideosIsolate, busdata.adVideos ?? []) : state.localVideoPaths;
-          localVideoPaths = isLoadingNeeded ? await AppCommonMethods.downloadVideosToLocal(busdata.adVideos ?? []) : state.localVideoPaths;
+          localVideoPaths = state.localVideoPaths.isEmpty ? await AppCommonMethods.downloadVideosToLocal(busdata.adVideos ?? []) : state.localVideoPaths;
           final oldBusData = state.busData;
           final newBusData = busdata;
 
@@ -57,6 +57,7 @@ class BusDataCubit extends Cubit<BusDataState> {
             // if equality is not properly implemented
             return; // Don't emit, nothing changed
           }
+          activeTripTimelineModel = busdata.activeTripTimelineModel;
           emit(state.copyWith(busData: busdata, localVideoPaths: localVideoPaths, status: BusDataStatus.loaded));
         } else {
           // emit(const BusDataErrorState(message: "Bus data is not found"));
@@ -124,6 +125,7 @@ class BusDataCubit extends Cubit<BusDataState> {
         debugPrint("⚠️ Failure on finding active trip data: ${failure.message}");
         return null;
       }, (activeTripData) {
+        activeTripTimelineModel = activeTripData;
         debugPrint("Bus active trip data found: ${activeTripData.tripDetails?.id}");
         return activeTripData;
       },);

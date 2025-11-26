@@ -24,7 +24,7 @@ class WebSocketServices {
     socket.onConnect((_) {
       final busData = context.read<BusDataCubit>().state.busData;
       log('🟢 Socket Connected: ${socket.id}');
-      final tripId = busData.activeTripTimelineModel?.tripDetails?.id;
+      final tripId = serviceLocator<BusDataCubit>().activeTripTimelineModel?.tripDetails?.id;
       currentActiveTripId = tripId;
       if (tripId != null) {
         log('🚍 Joining trip: $tripId');
@@ -62,10 +62,10 @@ class WebSocketServices {
       final nextstopSequenceNumber = jsonData["next_stop_sequence_number"];
       final currentStopName = jsonData["current_stop_name"];
       final nextStopName = jsonData["next_stop_name"];
-      // final distanceToNextStopInMeters = jsonData["distance_to_next_stop_meters"];
       log("📍 location data: $jsonData");
       try {
-        final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
+        // final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
+        final stops = serviceLocator<BusDataCubit>().activeTripTimelineModel?.stopList ?? [];
         final busData = context.read<BusDataCubit>().state.busData;
         // Iterate through the loop to find the current stop and show dialog
         for (int i = 0; i < stops.length; i++) {
@@ -104,8 +104,8 @@ class WebSocketServices {
     // reconnect events
     socket.onReconnect((attempt) {
       log("🟢 Socket Reconnected after $attempt attempt(s)");
-      final busData = context.read<BusDataCubit>().state.busData;
-      final tripId = busData.activeTripTimelineModel?.tripDetails?.id;
+      // final busData = context.read<BusDataCubit>().state.busData;
+      final tripId = serviceLocator<BusDataCubit>().activeTripTimelineModel?.tripDetails?.id;
 
       if (tripId != null) {
         log('🚍 Rejoining trip room after reconnect: $tripId');
@@ -122,10 +122,9 @@ class WebSocketServices {
     });
   }
 
-    static void processCurrentStopAudioAndDialog({
+  static void processCurrentStopAudioAndDialog({
     required String? stopId, required BusDataEntity busData,required String currentStopName,
     required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
-
   }) {
     final stopAudioMap = busData.stopAudios?[stopId]; // getting current stop audio map
     final currentStopAudio = stopAudioMap?["stop_audio_url"]; // getting current stop audio
@@ -199,32 +198,6 @@ class WebSocketServices {
     // Cancel previous watcher if any
     tripCheckerTimer?.cancel();
 
-    // tripCheckerTimer = Timer.periodic(const Duration(seconds: 40), (_) async {
-    //   final busDataCubit = context.read<BusDataCubit>();
-
-    //   // Fetch the bus and its active trip data
-    //   await busDataCubit.getBusData(isLoadingNeeded: false);
-
-    //   final busData = busDataCubit.state.busData;
-    //   final newActiveTripId = busData.activeTripTimelineModel?.tripDetails?.id;
-
-    //   // No active trip at the moment
-    //   if (newActiveTripId == null) {
-    //     log("🟡 No active trip for this bus currently.");
-    //     currentActiveTripId = null;
-    //     return;
-    //   }
-
-    //   // If trip is same then nothing to do
-    //   if (currentActiveTripId == newActiveTripId) return;
-
-    //   // Trip changed then join new room
-    //   currentActiveTripId = newActiveTripId;
-
-    //   log("🟢 New active trip detected → joining tripId: $newActiveTripId");
-
-    //   socket.emit("join-trip", {"tripId": newActiveTripId});
-    // });
     tripCheckerTimer = Timer.periodic(const Duration(seconds: 40), (_) async {
       // Fetch active trip data
       final activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: busId);
