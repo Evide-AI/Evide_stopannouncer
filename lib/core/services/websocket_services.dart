@@ -32,7 +32,7 @@ class WebSocketServices {
         socket.emit('join-trip', {'tripId': tripId});
       }
       // starting trip watch of the bus
-      startTripWatcher(context: context, socket: socket);
+      startTripWatcher(context: context, socket: socket, busId: busData.busId);
     });
 
     // if joined trip
