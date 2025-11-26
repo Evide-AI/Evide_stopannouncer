@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_cubit/bus_data_cubit.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
+import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/constants/app_global_keys.dart';
 import 'package:evide_stop_announcer_app/features/ads_play_page/presentation/dialogs/current_stop_data_showing_dialog.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -66,7 +67,7 @@ class WebSocketServices {
       log("📍 location data: $jsonData");
       try {
         final stops = context.read<BusDataCubit>().state.busData.activeTripTimelineModel?.stopList ?? [];
-        
+        final busData = context.read<BusDataCubit>().state.busData;
         // Iterate through the loop to find the current stop and show dialog
         for (int i = 0; i < stops.length; i++) {
           final stop = stops[i];
