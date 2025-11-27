@@ -27,7 +27,6 @@ class BusDataCubit extends Cubit<BusDataState> {
   }) : super(BusDataCubitInitial());
 
   StreamSubscription? _videoStreamSub;
-  TimeLineEntity? activeTripTimelineModel;
 
   // Method for getting bus data (including bus name, no, ad_videos and stop_audios)
   Future<void> getBusData({String? pairingCode, bool isLoadingNeeded = true}) async{
@@ -57,8 +56,7 @@ class BusDataCubit extends Cubit<BusDataState> {
             // if equality is not properly implemented
             return; // Don't emit, nothing changed
           }
-          activeTripTimelineModel = busdata.activeTripTimelineModel;
-          emit(state.copyWith(busData: busdata, localVideoPaths: localVideoPaths, status: BusDataStatus.loaded));
+          emit(state.copyWith(busData: busdata, localVideoPaths: localVideoPaths, status: BusDataStatus.loaded,));
         } else {
           // emit(const BusDataErrorState(message: "Bus data is not found"));
           emit(state.copyWith(status: BusDataStatus.error));
@@ -94,8 +92,7 @@ class BusDataCubit extends Cubit<BusDataState> {
                 final audios = audioVideoModel.audios;
                 final videos = audioVideoModel.videoUrls;
                 // Download videos to local storage
-                localVideoPaths =
-                    await AppCommonMethods.downloadVideosToLocal(videos);
+                localVideoPaths = await AppCommonMethods.downloadVideosToLocal(videos);
 
                 // Emit updated paths
                 emit(state.copyWith(
@@ -125,7 +122,6 @@ class BusDataCubit extends Cubit<BusDataState> {
         debugPrint("⚠️ Failure on finding active trip data: ${failure.message}");
         return null;
       }, (activeTripData) {
-        activeTripTimelineModel = activeTripData;
         debugPrint("Bus active trip data found: ${activeTripData.tripDetails?.id}");
         return activeTripData;
       },);
