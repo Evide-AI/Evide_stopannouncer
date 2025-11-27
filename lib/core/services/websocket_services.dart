@@ -22,9 +22,8 @@ class WebSocketServices {
   static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required AudioPlayer audioPlayer}) {
     // on connection established join the trip room
     socket.onConnect((_) async {
-      final busId = context.read<BusDataCubit>().state.busData.busId;
       log('🟢 Socket Connected: ${socket.id}');
-      activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: busId);
+      activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: context.read<BusDataCubit>().state.busData.busId);
       final tripId = activeTripData?.tripDetails?.id;
       currentActiveTripId = tripId;
       if (tripId != null) {
