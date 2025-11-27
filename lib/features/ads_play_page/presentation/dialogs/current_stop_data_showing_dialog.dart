@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Future<dynamic> currentStopDataShowingDialog({
   required BuildContext context,
-  required String stopName,
+  required String? stopName,
   required bool isCurrentStop,
   required String? stopNameInMalayalam,
 }) async {
@@ -96,7 +96,7 @@ Future<dynamic> currentStopDataShowingDialog({
                           ),
                           AppConstraints.kHeight8,
                         ],
-                        Text(
+                        if (stopName != null) Text(
                           stopName,
                           style: AppCommonStyles.commonTextStyle(
                             color: AppColors.kWhite,
