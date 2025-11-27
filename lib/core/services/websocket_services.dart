@@ -176,8 +176,8 @@ class WebSocketServices {
 
   static void getStopAudioAndDialog({
     required String? stopAudio,
-    required String stopName,
-    required String stopNameInMalayalam,
+    required String? stopName,
+    required String? stopNameInMalayalam,
     required bool isCurrentStop,
     required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
   }) {
