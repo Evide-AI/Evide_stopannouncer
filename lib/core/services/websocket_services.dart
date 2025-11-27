@@ -105,9 +105,11 @@ class WebSocketServices {
     });
 
     // reconnect events
-    socket.onReconnect((attempt) {
+    socket.onReconnect((attempt) async {
       log("🟢 Socket Reconnected after $attempt attempt(s)");
-      // final busData = context.read<BusDataCubit>().state.busData;
+      if (activeTripData?.tripDetails?.id == null) {
+        activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: context.read<BusDataCubit>().state.busData.busId);
+      }
       final tripId = activeTripData?.tripDetails?.id;
 
       if (tripId != null) {
