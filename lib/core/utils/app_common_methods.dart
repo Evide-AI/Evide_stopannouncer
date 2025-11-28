@@ -8,6 +8,7 @@ import 'package:evide_stop_announcer_app/core/services/api_service.dart';
 import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:crypto/crypto.dart';
