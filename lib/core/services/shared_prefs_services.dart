@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SharedPrefsServices {
   static String pairingCodeKey = 'DevicePairingCode';
   static String isPairedKey = 'IsDevicePaired';
+  static String locallySavedVideoUrls = "LOCALLY_SAVED_VIDEO_URLS";
 
   static late SharedPreferences _prefs;
 
@@ -27,5 +28,13 @@ class SharedPrefsServices {
   // save isPaired data
   static bool? getIsPaired() {
     return _prefs.getBool(isPairedKey);
+  }
+
+  static Future<void> setLocallySavedVideoUrls({required List<String> urls}) async {
+    await _prefs.setStringList(locallySavedVideoUrls, urls);
+  }
+
+  static List<String>? getLocallySavedVideoUrls() {
+    return _prefs.getStringList(locallySavedVideoUrls);
   }
 }
