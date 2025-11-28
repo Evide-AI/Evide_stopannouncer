@@ -110,205 +110,253 @@ class AppCommonMethods {
 
 
   static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
-    if (urls.isEmpty) return [];
+  if (urls.isEmpty) return [];
 
-    final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await getApplicationDocumentsDirectory();
 
-    const mimeMap = {
-      "video/mp4": ".mp4",
-      "video/webm": ".webm",
-      "video/quicktime": ".mov",
-      "video/x-matroska": ".mkv",
-      "video/x-msvideo": ".avi",
-      "video/x-flv": ".flv",
-      "video/x-ms-wmv": ".wmv",
-      "video/3gpp": ".3gp",
-      "video/x-m4v": ".m4v",
-      "video/mp2t": ".ts",
-      "video/ogg": ".ogv",
-    };
+  // ------------------------------------------
+  // GET SAVED URL LIST
+  // ------------------------------------------
+  final savedUrls = SharedPrefsServices.getLocallySavedVideoUrls() ?? [];
 
-    const maxRetries = 3;
-    const batchSize = 3;
+  // Remove duplicates from incoming list
+  final incomingUrls = urls.toSet().toList();
 
-    final dio = serviceLocator<Dio>();
+  // New URLs (not downloaded before)
+  List<String> newUrls = incomingUrls.where((u) => !savedUrls.contains(u)).toList();
 
-    String normalizeUrl(String url) {
-      final uri = Uri.parse(url);
-      return uri.replace(queryParameters: {}).toString();
-    }
+  // ------------------------------------------
+  // GET ALL LOCAL VIDEO FILES (ONLY VALID VIDEOS)
+  // ------------------------------------------
+  const videoExtensions = [
+    ".mp4", ".webm", ".mov", ".mkv", ".avi", ".flv",
+    ".wmv", ".3gp", ".m4v", ".ts", ".ogv",
+  ];
 
-    String? extractFileNameFromHeader(String? header) {
-      if (header == null) return null;
-      final regex = RegExp(r'filename="([^"]+)"');
-      final match = regex.firstMatch(header);
-      return match != null ? match.group(1) : null;
-    }
+  List<String> locallySavedVideosFilePaths = [];
 
-    // ----------------------------------------------------------
-    // DOWNLOAD A SINGLE VIDEO WITH RESUME SUPPORT
-    // ----------------------------------------------------------
-    Future<String?> downloadSingle(String url) async {
-      try {
-        final uri = Uri.parse(url);
+  final filesInDir = Directory(appDir.path).listSync();
 
-        final cacheKey = md5.convert(normalizeUrl(url).codeUnits).toString();
+  for (var entity in filesInDir) {
+    if (entity is File) {
+      final ext = p.extension(entity.path).toLowerCase();
 
-        String finalExt = "";
-        String filePath = p.join(appDir.path, "$cacheKey.tmp");
-        File tempFile = File(filePath);
-
-        int existingBytes = 0;
-        if (await tempFile.exists()) {
-          existingBytes = await tempFile.length();
+      if (videoExtensions.contains(ext)) {
+        // Extra validation to ensure the file is truly a video
+        if (await _isValidVideoFile(entity)) {
+          locallySavedVideosFilePaths.add(entity.path);
         }
-
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            final headers = <String, dynamic>{};
-
-            // ---------------------------------------
-            // RESUME WITH RANGE HEADER
-            // ---------------------------------------
-            if (existingBytes > 0) {
-              headers["Range"] = "bytes=$existingBytes-";
-            }
-
-            final response = await dio.get<List<int>>(
-              url,
-              options: Options(
-                responseType: ResponseType.bytes,
-                followRedirects: true,
-                headers: headers,
-                receiveTimeout: const Duration(seconds: 90),
-                sendTimeout: const Duration(seconds: 60),
-              ),
-            );
-
-            final status = response.statusCode ?? 0;
-            if (status != 200 && status != 206) {
-              throw Exception("HTTP status $status");
-            }
-
-            final contentType =
-                response.headers.value("content-type")?.split(";").first.trim();
-
-            final contentDisposition =
-                response.headers.value("content-disposition");
-
-            // -------------------------------------------------------
-            // DETECT CORRECT FILE EXTENSION
-            // -------------------------------------------------------
-            if (contentDisposition != null) {
-              final name = extractFileNameFromHeader(contentDisposition);
-              if (name != null) {
-                final ext = p.extension(name).toLowerCase();
-                if (ext.isNotEmpty) finalExt = ext;
-              }
-            }
-
-            if (finalExt.isEmpty && contentType != null && mimeMap.containsKey(contentType)) {
-              finalExt = mimeMap[contentType]!;
-            }
-
-            if (finalExt.isEmpty) finalExt = ".mp4";
-
-            String finalPath = p.join(appDir.path, "$cacheKey$finalExt");
-
-            // -------------------------------------------------------
-            // APPEND NEW BYTES (RESUMING DOWNLOAD)
-            // -------------------------------------------------------
-            await tempFile.parent.create(recursive: true);
-            final raf = tempFile.openSync(mode: FileMode.append);
-            raf.writeFromSync(response.data!);
-            await raf.close();
-
-            // -------------------------------------------------------
-            // VALIDATION
-            // -------------------------------------------------------
-            if (await _isValidVideoFile(tempFile)) {
-              await tempFile.rename(finalPath);
-              return finalPath;
-            }
-
-            if (attempt == maxRetries) {
-              await tempFile.delete().catchError((_) {});
-              return null;
-            }
-
-            await Future.delayed(Duration(seconds: attempt));
-          } catch (_) {
-            if (attempt == maxRetries) return null;
-            await Future.delayed(Duration(seconds: attempt));
-          }
-        }
-
-        return null;
-      } catch (_) {
-        return null;
       }
     }
-
-    // ----------------------------------------------------------
-    // PROCESS IN BATCHES
-    // ----------------------------------------------------------
-    final result = List<String?>.filled(urls.length, null);
-
-    for (int i = 0; i < urls.length; i += batchSize) {
-      final end = (i + batchSize < urls.length) ? i + batchSize : urls.length;
-
-      final futures = <Future<String?>>[];
-      for (int j = i; j < end; j++) {
-        futures.add(downloadSingle(urls[j]));
-      }
-
-      final batchResults = await Future.wait(futures);
-
-      for (int j = i; j < end; j++) {
-        result[j] = batchResults[j - i];
-      }
-
-      await Future.delayed(const Duration(milliseconds: 150));
-    }
-
-    return result.whereType<String>().toList();
   }
 
-  /// Improved validation
-  static Future<bool> _isValidVideoFile(File file) async {
+  // ------------------------------------------
+  // NO NEW URL → RETURN EXISTING LOCAL FILES
+  // ------------------------------------------
+  if (newUrls.isEmpty) {
+    return locallySavedVideosFilePaths;
+  }
+
+  // ==========================================
+  //     DOWNLOAD NEW VIDEOS
+  // ==========================================
+
+  const mimeMap = {
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/quicktime": ".mov",
+    "video/x-matroska": ".mkv",
+    "video/x-msvideo": ".avi",
+    "video/x-flv": ".flv",
+    "video/x-ms-wmv": ".wmv",
+    "video/3gpp": ".3gp",
+    "video/x-m4v": ".m4v",
+    "video/mp2t": ".ts",
+    "video/ogg": ".ogv",
+  };
+
+  const maxRetries = 3;
+  const batchSize = 3;
+
+  final dio = serviceLocator<Dio>();
+
+  String normalizeUrl(String url) {
+    final uri = Uri.parse(url);
+    return uri.replace(queryParameters: {}).toString();
+  }
+
+  String? extractFileNameFromHeader(String? header) {
+    if (header == null) return null;
+    final regex = RegExp(r'filename="([^"]+)"');
+    final match = regex.firstMatch(header);
+    return match?.group(1);
+  }
+
+  // ------------------------------------------
+  // DOWNLOAD ONE FILE WITH RESUME SUPPORT
+  // ------------------------------------------
+  Future<String?> downloadSingle(String url) async {
     try {
-      if (!await file.exists()) return false;
+      final cacheKey = md5.convert(normalizeUrl(url).codeUnits).toString();
 
-      final size = await file.length();
-      if (size < 1024) return false;
+      String finalExt = "";
+      String tempPath = p.join(appDir.path, "$cacheKey.tmp");
+      File tempFile = File(tempPath);
 
-      final raf = await file.open();
-      final header = await raf.read(16);
-      await raf.close();
-
-      // MP4
-      if (header.length >= 12 && String.fromCharCodes(header.sublist(4, 12)).contains("ftyp")) {
-        return true;
+      int existingBytes = 0;
+      if (await tempFile.exists()) {
+        existingBytes = await tempFile.length();
       }
 
-      // WebM/MKV (EBML)
-      if (header.length >= 4 &&
-          header[0] == 0x1A &&
-          header[1] == 0x45 &&
-          header[2] == 0xDF &&
-          header[3] == 0xA3) {
-            return true;
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          final headers = <String, dynamic>{};
+
+          if (existingBytes > 0) {
+            headers["Range"] = "bytes=$existingBytes-";
           }
 
-      // MOV
-      if (String.fromCharCodes(header).contains("moov")) return true;
+          final response = await dio.get<List<int>>(
+            url,
+            options: Options(
+              responseType: ResponseType.bytes,
+              followRedirects: true,
+              headers: headers,
+              receiveTimeout: const Duration(seconds: 90),
+            ),
+          );
 
-      // TS, AVI, others -> allow if large enough
-      if (size > 20 * 1024) return true;
+          if (![200, 206].contains(response.statusCode)) {
+            throw Exception("Status ${response.statusCode}");
+          }
 
-      return false;
+          final contentType = response.headers.value("content-type")?.split(";").first.trim();
+          final contentDisposition = response.headers.value("content-disposition");
+
+          // Detect extension
+          if (contentDisposition != null) {
+            final name = extractFileNameFromHeader(contentDisposition);
+            if (name != null) {
+              final ext = p.extension(name).toLowerCase();
+              if (ext.isNotEmpty) finalExt = ext;
+            }
+          }
+
+          if (finalExt.isEmpty && mimeMap.containsKey(contentType)) {
+            finalExt = mimeMap[contentType]!;
+          }
+          if (finalExt.isEmpty) finalExt = ".mp4";
+
+          // Write bytes (resume logic)
+          await tempFile.parent.create(recursive: true);
+          final raf = tempFile.openSync(mode: FileMode.append);
+          raf.writeFromSync(response.data!);
+          await raf.close();
+
+          // Validate final result
+          if (await _isValidVideoFile(tempFile)) {
+            final finalPath = p.join(appDir.path, "$cacheKey$finalExt");
+            await tempFile.rename(finalPath);
+            return finalPath;
+          }
+
+          // Final attempt failed
+          if (attempt == maxRetries) {
+            await tempFile.delete().catchError((_) {});
+            return null;
+          }
+
+        } catch (_) {
+          if (attempt == maxRetries) return null;
+          await Future.delayed(Duration(seconds: attempt));
+        }
+      }
+
+      return null;
     } catch (_) {
-      return false;
+      return null;
     }
   }
+
+  // ------------------------------------------
+  // PROCESS IN BATCHES
+  // ------------------------------------------
+  final results = List<String?>.filled(newUrls.length, null);
+
+  for (int i = 0; i < newUrls.length; i += batchSize) {
+    final end = (i + batchSize < newUrls.length) ? i + batchSize : newUrls.length;
+
+    final futures = <Future<String?>>[];
+
+    for (int j = i; j < end; j++) {
+      futures.add(downloadSingle(newUrls[j]));
+    }
+
+    final batchResults = await Future.wait(futures);
+
+    for (int j = i; j < end; j++) {
+      results[j] = batchResults[j - i];
+    }
+
+    await Future.delayed(const Duration(milliseconds: 150));
+  }
+
+  // Keep only successful downloads
+  final downloadedPaths = results.whereType<String>().toList();
+
+  locallySavedVideosFilePaths.addAll(downloadedPaths);
+
+  // ------------------------------------------
+  // UPDATE SAVED URL LIST
+  // ------------------------------------------
+  SharedPrefsServices.setLocallySavedVideoUrls(
+    urls: [...savedUrls, ...newUrls],
+  );
+
+  return locallySavedVideosFilePaths;
+}
+
+
+/// ================================================
+/// VALIDATION LOGIC
+/// ================================================
+static Future<bool> _isValidVideoFile(File file) async {
+  try {
+    if (!await file.exists()) return false;
+
+    final size = await file.length();
+    if (size < 1024) return false; // too small → not a video
+
+    final raf = await file.open();
+    final header = await raf.read(16);
+    await raf.close();
+
+    // MP4 signature
+    if (header.length >= 12 &&
+        String.fromCharCodes(header.sublist(4, 12)).contains("ftyp")) {
+      return true;
+    }
+
+    // WebM / MKV signature (EBML)
+    if (header.length >= 4 &&
+        header[0] == 0x1A &&
+        header[1] == 0x45 &&
+        header[2] == 0xDF &&
+        header[3] == 0xA3) {
+      return true;
+    }
+
+    // MOV (not perfect but acceptable)
+    if (String.fromCharCodes(header).contains("moov")) {
+      return true;
+    }
+
+    // For AVI, TS, FLV etc. → accept based on file size
+    if (size > 20 * 1024) return true;
+
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
 }
