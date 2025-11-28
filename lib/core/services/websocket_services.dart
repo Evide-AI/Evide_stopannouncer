@@ -71,7 +71,7 @@ class WebSocketServices {
       try {
         final busData = context.read<BusDataCubit>().state.busData;
         final stops = activeTripData?.stopList ?? [];
-        
+
         // Iterate through the loop to find the current stop and show dialog
         for (int i = 0; i < stops.length; i++) {
           final stop = stops[i];
