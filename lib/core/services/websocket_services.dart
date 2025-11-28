@@ -24,7 +24,9 @@ class WebSocketServices {
     // on connection established join the trip room
     socket.onConnect((_) async {
       log('🟢 Socket Connected: ${socket.id}');
-      activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: context.read<BusDataCubit>().state.busData.busId);
+      if ((activeTripData?.tripDetails?.isActive != true) || activeTripData?.tripDetails?.id == null) {
+        activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: context.read<BusDataCubit>().state.busData.busId);
+      }
       final tripId = activeTripData?.tripDetails?.id;
       currentActiveTripId = tripId;
       if (tripId != null) {
@@ -108,7 +110,7 @@ class WebSocketServices {
     // reconnect events
     socket.onReconnect((attempt) async {
       log("🟢 Socket Reconnected after $attempt attempt(s)");
-      if (activeTripData?.tripDetails?.id == null) {
+      if ((activeTripData?.tripDetails?.isActive != true) || activeTripData?.tripDetails?.id == null) {
         activeTripData = await serviceLocator<BusDataCubit>().getActiveTripData(busId: context.read<BusDataCubit>().state.busData.busId);
       }
       final tripId = activeTripData?.tripDetails?.id;
