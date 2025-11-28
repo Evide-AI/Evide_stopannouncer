@@ -18,6 +18,7 @@ class WebSocketServices {
   static int? currentActiveTripId;
   static double? totalDistanceToNextStop;
   static TimeLineEntity? activeTripData;
+  static Timer? nextStopTimer;
 
   static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required AudioPlayer audioPlayer}) {
     // on connection established join the trip room
@@ -85,8 +86,9 @@ class WebSocketServices {
             // GET CURRENT STOP DATA
             // ----------------------------------------------------
             processCurrentStopAudioAndDialog(stopId: stop.stopId?.toString(), busData: busData, currentStopName: currentStopName, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume);
+            nextStopTimer?.cancel();
             // Next stop
-            Future.delayed(Duration(seconds: 15), () {
+            nextStopTimer = Timer(Duration(seconds: 15), () {
               processNextStopAudioAndDialog(nextStopName: nextStopName, stops: stops, nextstopSequenceNumber: nextstopSequenceNumber, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume, busData: busData);
             },);
             // setting current stop sequence number to lastShownStopSequence (It is for avoid again showing dialog for current stop even if new update come for the same stop)
