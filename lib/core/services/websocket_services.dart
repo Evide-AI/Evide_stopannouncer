@@ -87,7 +87,9 @@ class WebSocketServices {
             // ----------------------------------------------------
             // GET CURRENT STOP DATA
             // ----------------------------------------------------
-            processCurrentStopAudioAndDialog(stopId: stop.stopId?.toString(), busData: busData, currentStopName: currentStopName, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume);
+            if (currentStopSequenceNumber != 1) {
+              processCurrentStopAudioAndDialog(stopId: stop.stopId?.toString(), busData: busData, currentStopName: currentStopName, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume);
+            }
             nextStopTimer?.cancel();
             // Next stop
             nextStopTimer = Timer(Duration(seconds: 15), () {
