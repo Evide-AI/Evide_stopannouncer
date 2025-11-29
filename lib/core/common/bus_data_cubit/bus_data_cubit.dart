@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_active_trip_data_usecase.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/stream_bus_videos_usecase.dart';
+import 'package:evide_stop_announcer_app/core/network_connection/connection_checker.dart';
 import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_data_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
@@ -49,8 +50,8 @@ class BusDataCubit extends Cubit<BusDataState> {
             SharedPrefsServices.savePairingCodeToLocalStorage(pairingCode: pairingCode ?? '');
           }
           // download videos to local storage and assign paths to localVideoPaths
-          // localVideoPaths = isLoadingNeeded ? await compute(AppCommonMethods.downloadVideosIsolate, busdata.adVideos ?? []) : state.localVideoPaths;
-          localVideoPaths = state.localVideoPaths.isEmpty ? await AppCommonMethods.downloadVideosToLocal(busdata.adVideos ?? []) : state.localVideoPaths;
+          // localVideoPaths = state.localVideoPaths.isEmpty ? await AppCommonMethods.downloadVideosToLocal(busdata.adVideos ?? []) : state.localVideoPaths;
+            localVideoPaths = await AppCommonMethods.downloadVideosToLocal(busdata.adVideos ?? []);
           final oldBusData = state.busData;
           final newBusData = busdata;
 
