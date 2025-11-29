@@ -365,128 +365,104 @@ static Future<bool> isValidVideoFile(File file) async {
   }
 }
 
-
 static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
   if (urls.isEmpty) return [];
 
   final appDir = await getApplicationDocumentsDirectory();
 
-  // -----------------------------
-  // NORMALIZE URL (remove token)
-  // -----------------------------
+  // ---------------------------------------------
+  // Extract file name from Firebase URL
+  // ---------------------------------------------
+  String getFileNameFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+
+      // Firebase path is encoded → decode it
+      String path = uri.path; // /v0/b/.../o/video%2Fatless.mp4
+      path = Uri.decodeFull(path);
+
+      // After decode → /v0/b/.../o/video/atless.mp4
+      if (path.contains("/o/")) {
+        final afterO = path.split("/o/").last;
+        return afterO.split("/").last; // atless.mp4
+      }
+
+      return uri.pathSegments.last;
+    } catch (_) {
+      return DateTime.now().millisecondsSinceEpoch.toString();
+    }
+  }
+
+  // -------------------------
+  // Normalize URL
+  // -------------------------
   String normalizeUrl(String url) {
     final uri = Uri.parse(url);
     return uri.replace(queryParameters: {}).toString();
   }
 
-  // -----------------------------
-  // LOAD SAVED URL LIST
-  // -----------------------------
   final savedUrls = SharedPrefsServices.getLocallySavedVideoUrls() ?? [];
   final normalizedIncomingUrls = urls.map(normalizeUrl).toSet().toList();
 
-  // --------------------------------------
-  // SYNC CLEANUP: REMOVE DELETED URLs
-  // --------------------------------------
-  final normalizedSavedUrls =
-      savedUrls.map(normalizeUrl).toSet(); // unique old URLs
+  // -------------------------
+  // Cleanup deleted URLs
+  // -------------------------
+  final normalizedSavedUrls = savedUrls.map(normalizeUrl).toSet();
   final normalizedNewUrls = normalizedIncomingUrls.toSet();
 
-  // URLs removed from Firestore
-  final removedUrls =
-      normalizedSavedUrls.difference(normalizedNewUrls).toList();
+  final removedUrls = normalizedSavedUrls.difference(normalizedNewUrls).toList();
 
-  // Delete files corresponding to removed URLs
   for (final removed in removedUrls) {
-    final cacheKey = md5.convert(removed.codeUnits).toString();
-    final filePattern = RegExp("^$cacheKey\\..+");
+    final fname = getFileNameFromUrl(removed);
+    final file = File(p.join(appDir.path, fname));
 
-    final files = Directory(appDir.path).listSync();
-    for (var entity in files) {
-      if (entity is File) {
-        final name = p.basename(entity.path);
-        if (filePattern.hasMatch(name)) {
-          await entity.delete().catchError((_) {});
-        }
-      }
+    if (await file.exists()) {
+      await file.delete().catchError((_) {});
     }
   }
 
-  // Update shared prefs (remove deleted URLs)
-  final updatedSaved = savedUrls
-      .where((u) => !removedUrls.contains(normalizeUrl(u)))
-      .toList();
+  SharedPrefsServices.setLocallySavedVideoUrls(
+    urls: savedUrls.where((u) => !removedUrls.contains(normalizeUrl(u))).toList(),
+  );
 
-  SharedPrefsServices.setLocallySavedVideoUrls(urls: updatedSaved);
-
-  // ----------------------------------------------------
-  // DOWNLOAD PART — SAME AS YOUR LOGIC WITH SMALL FIXES
-  // ----------------------------------------------------
-
-  const mimeMap = {
-    "video/mp4": ".mp4",
-    "video/webm": ".webm",
-    "video/quicktime": ".mov",
-    "video/x-matroska": ".mkv",
-    "video/x-msvideo": ".avi",
-    "video/x-flv": ".flv",
-    "video/x-ms-wmv": ".wmv",
-    "video/3gpp": ".3gp",
-    "video/x-m4v": ".m4v",
-    "video/mp2t": ".ts",
-    "video/ogg": ".ogv",
-  };
-
-  const maxRetries = 3;
-  const batchSize = 3;
-
-  final apiService = serviceLocator<ApiService>();
-
-  List<String> locallySavedVideosFilePaths = [];
-
-  // ------------------------------------------
-  // Identify new URLs to download
-  // ------------------------------------------
+  // -------------------------
+  // Find new URLs to download
+  // -------------------------
   final newUrls = normalizedIncomingUrls
-      .where((u) => !updatedSaved.map(normalizeUrl).contains(u))
+      .where((u) => !savedUrls.map(normalizeUrl).contains(u))
       .toList();
 
-  // ------------------------------------------
-  // READ EXISTING LOCAL VIDEO FILES
-  // ------------------------------------------
-  final filesInDir = Directory(appDir.path).listSync();
-  for (var entity in filesInDir) {
+  // -------------------------
+  // Read existing valid files
+  // -------------------------
+  List<String> locallySavedVideosFilePaths = [];
+  final files = Directory(appDir.path).listSync();
+
+  for (var entity in files) {
     if (entity is File) {
-      final ext = p.extension(entity.path).toLowerCase();
-      if (videoExtensions.contains(ext)) {
-        if (await isValidVideoFile(entity)) {
-          locallySavedVideosFilePaths.add(entity.path);
-        }
+      if (await isValidVideoFile(entity)) {
+        locallySavedVideosFilePaths.add(entity.path);
       }
     }
   }
 
-  // ------------------------------------------
-  // NO NEW URL → RETURN LOCAL FILES
-  // ------------------------------------------
-  if (newUrls.isEmpty) {
-    return locallySavedVideosFilePaths;
-  }
+  if (newUrls.isEmpty) return locallySavedVideosFilePaths;
 
-  // ------------------------------------------
-  // DOWNLOAD ONE FILE
-  // ------------------------------------------
-  Future<String?> downloadSingle(String urlOriginal) async {
-    final url = urlOriginal; // use original while downloading
+  // -----------------------------------------
+  // DOWNLOAD A SINGLE FILE (with filename)
+  // -----------------------------------------
+  Future<String?> downloadSingle(String url) async {
     final normalized = normalizeUrl(url);
-    final cacheKey = md5.convert(normalized.codeUnits).toString();
+    final fileName = getFileNameFromUrl(normalized); // <----- FIXED
+    final finalPath = p.join(appDir.path, fileName);
 
-    String finalExt = "";
-    String tempPath = p.join(appDir.path, "$cacheKey.tmp");
-    File tempFile = File(tempPath);
+    final tempPath = finalPath + ".temp";
+    final tempFile = File(tempPath);
 
     int existingBytes = await tempFile.exists() ? await tempFile.length() : 0;
 
+    final apiService = serviceLocator<ApiService>();
+    const maxRetries = 3;
 
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -507,36 +483,16 @@ static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
         );
 
         if (![200, 206].contains(response?.statusCode)) {
-          throw Exception("Status ${response?.statusCode}");
+          throw Exception("HTTP ${response?.statusCode}");
         }
-
-        final contentType =
-            response?.headers.value("content-type")?.split(";").first.trim();
-        final contentDisposition =
-            response?.headers.value("content-disposition");
-
-        if (contentDisposition != null) {
-          final name = RegExp(r'filename="([^"]+)"')
-              .firstMatch(contentDisposition)
-              ?.group(1);
-          if (name != null) {
-            final ext = p.extension(name).toLowerCase();
-            if (ext.isNotEmpty) finalExt = ext;
-          }
-        }
-
-        if (finalExt.isEmpty && mimeMap.containsKey(contentType)) {
-          finalExt = mimeMap[contentType]!;
-        }
-        if (finalExt.isEmpty) finalExt = ".mp4";
 
         await tempFile.parent.create(recursive: true);
+
         final raf = tempFile.openSync(mode: FileMode.append);
         raf.writeFromSync(response?.data!);
         await raf.close();
 
         if (await isValidVideoFile(tempFile)) {
-          final finalPath = p.join(appDir.path, "$cacheKey$finalExt");
           await tempFile.rename(finalPath);
           return finalPath;
         }
@@ -554,42 +510,264 @@ static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
     return null;
   }
 
-  // ------------------------------------------
-  // PROCESS DOWNLOADS IN BATCHES
-  // ------------------------------------------
-  final results = List<String?>.filled(newUrls.length, null);
+  // ------------------------------
+  // Batch processing
+  // ------------------------------
+  const batchSize = 3;
+  List<String?> results = List.filled(newUrls.length, null);
 
   for (int i = 0; i < newUrls.length; i += batchSize) {
-    final end = (i + batchSize < newUrls.length) ? i + batchSize : newUrls.length;
+    final end =
+        (i + batchSize < newUrls.length) ? i + batchSize : newUrls.length;
 
-    // Collect futures for this batch
-    final futures = <Future<String?>>[];
+    final batch = await Future.wait(
+      newUrls.sublist(i, end).map(downloadSingle),
+    );
 
     for (int j = i; j < end; j++) {
-      futures.add(downloadSingle(newUrls[j])); // FIXED: newUrls, not urls
-    }
-
-    // Wait for batch
-    final batchResults = await Future.wait(futures);
-
-    // Store into results
-    for (int j = i; j < end; j++) {
-      results[j] = batchResults[j - i];
+      results[j] = batch[j - i];
     }
   }
 
-  final downloadedPaths = results.whereType<String>().toList();
-  locallySavedVideosFilePaths.addAll(downloadedPaths);
+  final downloaded = results.whereType<String>().toList();
+  locallySavedVideosFilePaths.addAll(downloaded);
 
-  // ------------------------------------------
-  // UPDATE SAVED URL LIST
-  // ------------------------------------------
+  // ---------------------------------
+  // Update shared prefs
+  // ---------------------------------
   SharedPrefsServices.setLocallySavedVideoUrls(
-    urls: [...updatedSaved, ...urls],
+    urls: [...savedUrls, ...urls],
   );
 
   return locallySavedVideosFilePaths;
 }
+
+
+
+// static Future<List<String>> downloadVideosToLocal(List<String> urls) async {
+//   if (urls.isEmpty) return [];
+
+//   final appDir = await getApplicationDocumentsDirectory();
+
+//   // -----------------------------
+//   // NORMALIZE URL (remove token)
+//   // -----------------------------
+//   String normalizeUrl(String url) {
+//     final uri = Uri.parse(url);
+//     return uri.replace(queryParameters: {}).toString();
+//   }
+
+//   // -----------------------------
+//   // LOAD SAVED URL LIST
+//   // -----------------------------
+//   final savedUrls = SharedPrefsServices.getLocallySavedVideoUrls() ?? [];
+//   final normalizedIncomingUrls = urls.map(normalizeUrl).toSet().toList();
+
+//   // --------------------------------------
+//   // SYNC CLEANUP: REMOVE DELETED URLs
+//   // --------------------------------------
+//   final normalizedSavedUrls =
+//       savedUrls.map(normalizeUrl).toSet(); // unique old URLs
+//   final normalizedNewUrls = normalizedIncomingUrls.toSet();
+
+//   // URLs removed from Firestore
+//   final removedUrls =
+//       normalizedSavedUrls.difference(normalizedNewUrls).toList();
+
+//   // Delete files corresponding to removed URLs
+//   for (final removed in removedUrls) {
+//     final cacheKey = md5.convert(removed.codeUnits).toString();
+//     final filePattern = RegExp("^$cacheKey\\..+");
+
+//     final files = Directory(appDir.path).listSync();
+//     for (var entity in files) {
+//       if (entity is File) {
+//         final name = p.basename(entity.path);
+//         if (filePattern.hasMatch(name)) {
+//           await entity.delete().catchError((_) {});
+//         }
+//       }
+//     }
+//   }
+
+//   // Update shared prefs (remove deleted URLs)
+//   final updatedSaved = savedUrls
+//       .where((u) => !removedUrls.contains(normalizeUrl(u)))
+//       .toList();
+
+//   SharedPrefsServices.setLocallySavedVideoUrls(urls: updatedSaved);
+
+//   // ----------------------------------------------------
+//   // DOWNLOAD PART — SAME AS YOUR LOGIC WITH SMALL FIXES
+//   // ----------------------------------------------------
+
+//   const mimeMap = {
+//     "video/mp4": ".mp4",
+//     "video/webm": ".webm",
+//     "video/quicktime": ".mov",
+//     "video/x-matroska": ".mkv",
+//     "video/x-msvideo": ".avi",
+//     "video/x-flv": ".flv",
+//     "video/x-ms-wmv": ".wmv",
+//     "video/3gpp": ".3gp",
+//     "video/x-m4v": ".m4v",
+//     "video/mp2t": ".ts",
+//     "video/ogg": ".ogv",
+//   };
+
+//   const maxRetries = 3;
+//   const batchSize = 3;
+
+//   final apiService = serviceLocator<ApiService>();
+
+//   List<String> locallySavedVideosFilePaths = [];
+
+//   // ------------------------------------------
+//   // Identify new URLs to download
+//   // ------------------------------------------
+//   final newUrls = normalizedIncomingUrls
+//       .where((u) => !updatedSaved.map(normalizeUrl).contains(u))
+//       .toList();
+
+//   // ------------------------------------------
+//   // READ EXISTING LOCAL VIDEO FILES
+//   // ------------------------------------------
+//   final filesInDir = Directory(appDir.path).listSync();
+//   for (var entity in filesInDir) {
+//     if (entity is File) {
+//       final ext = p.extension(entity.path).toLowerCase();
+//       if (videoExtensions.contains(ext)) {
+//         if (await isValidVideoFile(entity)) {
+//           locallySavedVideosFilePaths.add(entity.path);
+//         }
+//       }
+//     }
+//   }
+
+//   // ------------------------------------------
+//   // NO NEW URL → RETURN LOCAL FILES
+//   // ------------------------------------------
+//   if (newUrls.isEmpty) {
+//     return locallySavedVideosFilePaths;
+//   }
+
+//   // ------------------------------------------
+//   // DOWNLOAD ONE FILE
+//   // ------------------------------------------
+//   Future<String?> downloadSingle(String urlOriginal) async {
+//     final url = urlOriginal; // use original while downloading
+//     final normalized = normalizeUrl(url);
+//     final cacheKey = md5.convert(normalized.codeUnits).toString();
+
+//     String finalExt = "";
+//     String tempPath = p.join(appDir.path, "$cacheKey.tmp");
+//     File tempFile = File(tempPath);
+
+//     int existingBytes = await tempFile.exists() ? await tempFile.length() : 0;
+
+
+//     for (int attempt = 1; attempt <= maxRetries; attempt++) {
+//       try {
+//         final headers = <String, dynamic>{};
+//         if (existingBytes > 0) {
+//           headers["Range"] = "bytes=$existingBytes-";
+//         }
+
+//         final response = await apiService.get<List<int>>(
+//           url: url,
+//           options: Options(
+//             responseType: ResponseType.bytes,
+//             followRedirects: true,
+//             headers: headers,
+//             receiveTimeout: const Duration(seconds: 90),
+//             extra: {"isNeedToWait": true},
+//           ),
+//         );
+
+//         if (![200, 206].contains(response?.statusCode)) {
+//           throw Exception("Status ${response?.statusCode}");
+//         }
+
+//         final contentType =
+//             response?.headers.value("content-type")?.split(";").first.trim();
+//         final contentDisposition =
+//             response?.headers.value("content-disposition");
+
+//         if (contentDisposition != null) {
+//           final name = RegExp(r'filename="([^"]+)"')
+//               .firstMatch(contentDisposition)
+//               ?.group(1);
+//           if (name != null) {
+//             final ext = p.extension(name).toLowerCase();
+//             if (ext.isNotEmpty) finalExt = ext;
+//           }
+//         }
+
+//         if (finalExt.isEmpty && mimeMap.containsKey(contentType)) {
+//           finalExt = mimeMap[contentType]!;
+//         }
+//         if (finalExt.isEmpty) finalExt = ".mp4";
+
+//         await tempFile.parent.create(recursive: true);
+//         final raf = tempFile.openSync(mode: FileMode.append);
+//         raf.writeFromSync(response?.data!);
+//         await raf.close();
+
+//         if (await isValidVideoFile(tempFile)) {
+//           final finalPath = p.join(appDir.path, "$cacheKey$finalExt");
+//           await tempFile.rename(finalPath);
+//           return finalPath;
+//         }
+
+//         if (attempt == maxRetries) {
+//           tempFile.delete().catchError((_) {});
+//           return null;
+//         }
+//       } catch (_) {
+//         if (attempt == maxRetries) return null;
+//         await Future.delayed(Duration(seconds: attempt));
+//       }
+//     }
+
+//     return null;
+//   }
+
+//   // ------------------------------------------
+//   // PROCESS DOWNLOADS IN BATCHES
+//   // ------------------------------------------
+//   final results = List<String?>.filled(newUrls.length, null);
+
+//   for (int i = 0; i < newUrls.length; i += batchSize) {
+//     final end = (i + batchSize < newUrls.length) ? i + batchSize : newUrls.length;
+
+//     // Collect futures for this batch
+//     final futures = <Future<String?>>[];
+
+//     for (int j = i; j < end; j++) {
+//       futures.add(downloadSingle(newUrls[j])); // FIXED: newUrls, not urls
+//     }
+
+//     // Wait for batch
+//     final batchResults = await Future.wait(futures);
+
+//     // Store into results
+//     for (int j = i; j < end; j++) {
+//       results[j] = batchResults[j - i];
+//     }
+//   }
+
+//   final downloadedPaths = results.whereType<String>().toList();
+//   locallySavedVideosFilePaths.addAll(downloadedPaths);
+
+//   // ------------------------------------------
+//   // UPDATE SAVED URL LIST
+//   // ------------------------------------------
+//   SharedPrefsServices.setLocallySavedVideoUrls(
+//     urls: [...updatedSaved, ...urls],
+//   );
+
+//   return locallySavedVideosFilePaths;
+// }
 
 
 
