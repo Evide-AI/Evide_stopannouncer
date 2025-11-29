@@ -12,18 +12,19 @@ class ApiCore {
   }
 
   // get method
-  Future<Response?> get({
+  Future<Response?> get<T>({
     required String url,
     Map<String, String?>? additionalHeaders,
     CancelToken? cancelToken,
     int timeout = 120,
     bool? isNeedToWait,
+    Options? options,
   }) async {
     try {
       Response response = await dio.get(
         url,
         cancelToken: cancelToken,
-        options: Options(
+        options: options ?? Options(
           extra: {
             "isNeedToWait": isNeedToWait,
           },

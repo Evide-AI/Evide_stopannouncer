@@ -257,7 +257,7 @@ void _skipToNextOnError() async {
           BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
             if (state.status == BusDataStatus.loaded) {
               // initialize video player with first video
-            if (state.busData.adVideos?.isNotEmpty ?? false) {
+            if (state.localVideoPaths?.isNotEmpty ?? false) {
                 _videoList = state.localVideoPaths; // Store all video paths
                 currentVideoIndex = 0;
                 await initializeVideo(index: currentVideoIndex);
@@ -275,7 +275,7 @@ void _skipToNextOnError() async {
           },),
         ],
         child: BlocBuilder<BusDataCubit, BusDataState>(builder: (context, state) {
-          if (state.status == BusDataStatus.loading || state.status == BusDataStatus.error) {
+          if ((state.status == BusDataStatus.loading || state.status == BusDataStatus.error) && state.localVideoPaths.isEmpty) {
             return commonLoadingWidget();
           }
           if (_betterPlayerController == null) {

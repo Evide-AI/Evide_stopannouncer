@@ -17,7 +17,7 @@ class RootWidgetPage extends StatelessWidget {
       builder: (context, child) {
         return MultiBlocProvider(
           providers: [
-            BlocProvider(create: (context) => serviceLocator<BusDataCubit>()),
+            BlocProvider(create: (context) => serviceLocator<BusDataCubit>()..getLocalStoredVideosInitiallyOnAppOpen()),
           ],
           child: MaterialApp(
             debugShowCheckedModeBanner: false,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
@@ -10,6 +11,8 @@ import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/bus_
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/entity/timeline_entity.dart';
 import 'package:evide_stop_announcer_app/core/common/bus_data_domain/usecases/get_bus_doc_data_usecase.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 part 'bus_data_state.dart';
 
@@ -109,8 +112,38 @@ class BusDataCubit extends Cubit<BusDataState> {
       }
     } catch (e) {
       emit(state.copyWith(
-        message: e.toString(), 
+        message: e.toString(),
       ));
+    }
+  }
+
+  Future<void> getLocalStoredVideosInitiallyOnAppOpen() async {
+    try {
+      final bool? isBusPaired = SharedPrefsServices.getIsPaired();
+      if (isBusPaired ?? false) {
+        final appDir = await getApplicationDocumentsDirectory();
+        List<String> locallySavedVideosFilePaths = [];
+
+        final filesInDir = Directory(appDir.path).listSync();
+        for (var entity in filesInDir) {
+          if (entity is File) {
+            final ext = p.extension(entity.path).toLowerCase();
+
+            if (AppCommonMethods.videoExtensions.contains(ext)) {
+              // Extra validation to ensure the file is truly a video
+              if (await AppCommonMethods.isValidVideoFile(entity)) {
+                locallySavedVideosFilePaths.add(entity.path);
+              }
+            }
+          }
+        }
+        localVideoPaths = locallySavedVideosFilePaths;
+        emit(state.copyWith(localVideoPaths: localVideoPaths, status: BusDataStatus.loaded, busData: state.busData,));
+      } else {
+        debugPrint("From getLocalStoredVideosInitiallyOnAppOpen: Bus not paired");
+      }
+    } catch (e) {
+      debugPrint("Exception occured on getLocalStoredVideosInitiallyOnAppOpen ${e.toString()}");
     }
   }
 

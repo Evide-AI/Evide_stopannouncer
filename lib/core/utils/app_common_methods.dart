@@ -30,6 +30,11 @@ class AppCommonMethods {
     return uniqueCode;
   }
 
+  static const videoExtensions = [
+    ".mp4", ".webm", ".mov", ".mkv", ".avi", ".flv",
+    ".wmv", ".3gp", ".m4v", ".ts", ".ogv",
+  ];
+
   // commonSnackbar method
   static void commonSnackbar({required BuildContext context, required String message}) {
     final snackBar = SnackBar(
@@ -129,10 +134,6 @@ class AppCommonMethods {
   // ------------------------------------------
   // GET ALL LOCAL VIDEO FILES (ONLY VALID VIDEOS)
   // ------------------------------------------
-  const videoExtensions = [
-    ".mp4", ".webm", ".mov", ".mkv", ".avi", ".flv",
-    ".wmv", ".3gp", ".m4v", ".ts", ".ogv",
-  ];
 
   List<String> locallySavedVideosFilePaths = [];
 
@@ -144,7 +145,7 @@ class AppCommonMethods {
 
       if (videoExtensions.contains(ext)) {
         // Extra validation to ensure the file is truly a video
-        if (await _isValidVideoFile(entity)) {
+        if (await isValidVideoFile(entity)) {
           locallySavedVideosFilePaths.add(entity.path);
         }
       }
@@ -179,7 +180,7 @@ class AppCommonMethods {
   const maxRetries = 3;
   const batchSize = 3;
 
-  final dio = serviceLocator<Dio>();
+  final apiService = serviceLocator<ApiService>();
 
   String normalizeUrl(String url) {
     final uri = Uri.parse(url);
@@ -217,22 +218,25 @@ class AppCommonMethods {
             headers["Range"] = "bytes=$existingBytes-";
           }
 
-          final response = await dio.get<List<int>>(
-            url,
+          final response = await apiService.get<List<int>>(
+            url: url,
             options: Options(
               responseType: ResponseType.bytes,
               followRedirects: true,
               headers: headers,
               receiveTimeout: const Duration(seconds: 90),
+              extra: {
+                "isNeedToWait": true,
+              }
             ),
           );
 
-          if (![200, 206].contains(response.statusCode)) {
-            throw Exception("Status ${response.statusCode}");
+          if (![200, 206].contains(response?.statusCode)) {
+            throw Exception("Status ${response?.statusCode}");
           }
 
-          final contentType = response.headers.value("content-type")?.split(";").first.trim();
-          final contentDisposition = response.headers.value("content-disposition");
+          final contentType = response?.headers.value("content-type")?.split(";").first.trim();
+          final contentDisposition = response?.headers.value("content-disposition");
 
           // Detect extension
           if (contentDisposition != null) {
@@ -251,11 +255,11 @@ class AppCommonMethods {
           // Write bytes (resume logic)
           await tempFile.parent.create(recursive: true);
           final raf = tempFile.openSync(mode: FileMode.append);
-          raf.writeFromSync(response.data!);
+          raf.writeFromSync(response?.data!);
           await raf.close();
 
           // Validate final result
-          if (await _isValidVideoFile(tempFile)) {
+          if (await isValidVideoFile(tempFile)) {
             final finalPath = p.join(appDir.path, "$cacheKey$finalExt");
             await tempFile.rename(finalPath);
             return finalPath;
@@ -321,7 +325,7 @@ class AppCommonMethods {
 /// ================================================
 /// VALIDATION LOGIC
 /// ================================================
-static Future<bool> _isValidVideoFile(File file) async {
+static Future<bool> isValidVideoFile(File file) async {
   try {
     if (!await file.exists()) return false;
 

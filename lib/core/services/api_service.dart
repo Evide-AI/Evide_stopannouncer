@@ -43,18 +43,20 @@ class ApiService {
     },
   );
   // get method
-  Future<Response?> get({
+  Future<Response?> get<T>({
     required String url,
     CancelToken? cancelToken,
     int timeout = 60,
     bool? isNeedToWait,
     bool updateToken = false,
+    Options? options,
   }) {
-    return apiCore.get(
+    return apiCore.get<T>(
       url: url,
       cancelToken: cancelToken,
       timeout: timeout,
       isNeedToWait: isNeedToWait,
+      options: options,
     );
   }
 
