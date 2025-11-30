@@ -123,18 +123,22 @@ class BusDataCubit extends Cubit<BusDataState> {
       final bool? isBusPaired = SharedPrefsServices.getIsPaired();
       if (isBusPaired ?? false) {
         final appDir = await getApplicationDocumentsDirectory();
+        final downloadDir = Directory("${appDir.path}/downloaded_videos");
         List<String> locallySavedVideosFilePaths = [];
 
-        final filesInDir = Directory(appDir.path).listSync();
+        // Folder may not exist on first app open
+        if (!await downloadDir.exists()) {
+          await downloadDir.create(recursive: true);
+        }
+
+        final filesInDir = downloadDir.listSync();
         for (var entity in filesInDir) {
           if (entity is File) {
             final ext = p.extension(entity.path).toLowerCase();
 
             if (AppCommonMethods.videoExtensions.contains(ext)) {
               // Extra validation to ensure the file is truly a video
-              if (await AppCommonMethods.isValidVideoFile(entity)) {
-                locallySavedVideosFilePaths.add(entity.path);
-              }
+              locallySavedVideosFilePaths.add(entity.path);
             }
           }
         }
