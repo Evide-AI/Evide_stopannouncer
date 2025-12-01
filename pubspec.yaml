@@ -53,6 +53,7 @@ dependencies:
   kiosk_mode: ^0.7.0+1
   crypto: ^3.0.7
   android_intent_plus: ^6.0.0
+  firebase_crashlytics: ^5.0.5
 
 
 dev_dependencies:
