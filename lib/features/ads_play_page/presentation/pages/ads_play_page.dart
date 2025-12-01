@@ -82,7 +82,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
           Future.delayed(Duration(seconds: 1), () {
             audioPlayer.onPlayerComplete.listen((event) {
               _betterPlayerController?.videoPlayerController?.setVolume(
-                0.01,
+                0.3,
               );
             });
           });
@@ -171,7 +171,7 @@ class _AdsPlayPageState extends State<AdsPlayPage> with WidgetsBindingObserver{
       betterPlayerDataSource: dataSource,
     );
     // setting video volume low as possible
-    _betterPlayerController?.setVolume(0.01);
+    _betterPlayerController?.setVolume(0.3);
     setState(() {});
   } catch (e) {
     log("Error initializing video: $e");
@@ -257,20 +257,22 @@ void _skipToNextOnError() async {
           BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
             if (state.status == BusDataStatus.loaded) {
               // initialize video player with first video
-            if (state.localVideoPaths?.isNotEmpty ?? false) {
-                _videoList = state.localVideoPaths; // Store all video paths
-                currentVideoIndex = 0;
-                await initializeVideo(index: currentVideoIndex);
+              final newList = state.localVideoPaths ?? [];
+
+              // If list changed -> update & reinitialize
+              if (!AppCommonMethods.listEquals(_videoList, newList)) {
+                _videoList = List<String>.from(newList);  // defensive copy
+
+                if (_videoList.isNotEmpty) {
+                  currentVideoIndex = 0;
+                  await initializeVideo(index: currentVideoIndex);
+                }
               }
 
-            // Update video list if stream updates
-            if (state.localVideoPaths.isNotEmpty) {
-              _videoList = state.localVideoPaths;
-            }
-            // Start streaming video audio updates from firebase
-            if (mounted) {
-              context.read<BusDataCubit>().getVideosAndAudiosToPlay();
-            }
+              // Start fetching remote updates only once
+              if (mounted) {
+                context.read<BusDataCubit>().getVideosAndAudiosToPlay();
+              }
             }
           },),
         ],

@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:developer' as dev;
 import 'dart:io';
 import 'package:android_intent_plus/android_intent.dart';
@@ -6,34 +5,27 @@ import 'package:dio/dio.dart';
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 import 'package:evide_stop_announcer_app/core/services/api_service.dart';
 import 'package:evide_stop_announcer_app/core/services/service_locator.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:evide_stop_announcer_app/core/services/shared_prefs_services.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
-import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 class AppCommonMethods {
-  static final _rnd = Random.secure();
-
-  static String generateSecretCode() {
-    // Generate a 6-digit numeric code (100000 - 999999)
-    final code = 100000 + _rnd.nextInt(900000);
-
-    // Optionally add milliseconds-based offset to reduce collisions
-    final uniqueOffset = DateTime.now().millisecondsSinceEpoch % 1000;
-
-    // Mix both and ensure only 6 digits
-    final uniqueCode = ((code + uniqueOffset) % 1000000).toString().padLeft(6, '0');
-
-    return uniqueCode;
-  }
-
   static const videoExtensions = [
     ".mp4", ".webm", ".mov", ".mkv", ".avi", ".flv",
     ".wmv", ".3gp", ".m4v", ".ts", ".ogv",
   ];
+
+  static bool listEquals<T>(List<T>? a, List<T>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   // commonSnackbar method
   static void commonSnackbar({required BuildContext context, required String message}) {
