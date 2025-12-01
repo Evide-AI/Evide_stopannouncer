@@ -257,7 +257,7 @@ void _skipToNextOnError() async {
           BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
             if (state.status == BusDataStatus.loaded) {
               // initialize video player with first video
-              final newList = state.localVideoPaths ?? [];
+              final newList = state.localVideoPaths;
 
               // If list changed -> update & reinitialize
               if (!AppCommonMethods.listEquals(_videoList, newList)) {
@@ -270,7 +270,7 @@ void _skipToNextOnError() async {
               }
 
               // Start fetching remote updates only once
-              if (mounted) {
+              if (context.mounted) {
                 context.read<BusDataCubit>().getVideosAndAudiosToPlay();
               }
             }
