@@ -19,6 +19,20 @@ class WebSocketServices {
   static double? totalDistanceToNextStop;
   static TimeLineEntity? activeTripData;
   static Timer? nextStopTimer;
+  static bool isDialogOpen = false;
+  static BuildContext? activeDialogContext;
+
+  // 🔥 New helper to close active dialog safely
+  static void closeStopDialog() {
+    if (isDialogOpen && activeDialogContext != null) {
+      try {
+        Navigator.of(activeDialogContext!, rootNavigator: true).pop();
+      } catch (_) {}
+
+      isDialogOpen = false;
+      activeDialogContext = null;
+    }
+  }
 
   static void connectAndListenToSocket({required io.Socket socket, required BuildContext context, required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume, required AudioPlayer audioPlayer}) {
     // on connection established join the trip room
@@ -188,16 +202,24 @@ class WebSocketServices {
     required bool isCurrentStop,
     required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
   }) {
+    closeStopDialog();
     if (stopAudio != null) { //if stop audio not null, will play the audio
       playStopAudioAndHandleVideoVolume(audioUrl: stopAudio);
     }
+
+    BuildContext dialogContext = AppGlobalKeys.navigatorKey.currentContext!;
+    activeDialogContext = dialogContext;
+    isDialogOpen = true;
     // showing stop dialog
     currentStopDataShowingDialog(
       isCurrentStop: isCurrentStop,
       context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
       stopName: stopName,
       stopNameInMalayalam: stopNameInMalayalam,
-    );
+    ).then((_) {
+      isDialogOpen = false;
+      activeDialogContext = null;
+    });;
   }
 
   // method for watch the trip of the current bus and
@@ -233,3 +255,4 @@ class WebSocketServices {
     });
   }
 }
+
