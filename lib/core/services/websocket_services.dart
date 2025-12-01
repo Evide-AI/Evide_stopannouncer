@@ -107,7 +107,9 @@ class WebSocketServices {
             nextStopTimer?.cancel();
             // Next stop
             nextStopTimer = Timer(Duration(seconds: 15), () {
-              processNextStopAudioAndDialog(nextStopName: nextStopName, stops: stops, nextstopSequenceNumber: nextstopSequenceNumber, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume, busData: busData);
+              if (nextStopName != null) {
+                processNextStopAudioAndDialog(nextStopName: nextStopName, stops: stops, nextstopSequenceNumber: nextstopSequenceNumber, playStopAudioAndHandleVideoVolume: playStopAudioAndHandleVideoVolume, busData: busData);
+              }
             },);
             // setting current stop sequence number to lastShownStopSequence (It is for avoid again showing dialog for current stop even if new update come for the same stop)
             lastShownStopSequence = currentStopSequenceNumber;
@@ -164,7 +166,7 @@ class WebSocketServices {
   }
 
   static void processNextStopAudioAndDialog({
-    required String nextStopName,
+    required String? nextStopName,
     required List<StopEntity> stops,
     required int nextstopSequenceNumber,
     required void Function({required String audioUrl}) playStopAudioAndHandleVideoVolume,
