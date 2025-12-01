@@ -6,17 +6,32 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 
 void main() async{
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-   options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await initDependencies();
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+    );
+    initializeFirebaseCrashlyticsServerAndRecordError();
+    await initDependencies();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
 
-  // immersive mode for full-screen TV experience
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(RootWidgetPage());
+    // immersive mode for full-screen TV experience
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    runApp(RootWidgetPage());
+  }, (error, stack) {
+    PlatformDispatcher.instance.onError?.call(error, stack);
+  },);
+}
+
+void initializeFirebaseCrashlyticsServerAndRecordError() {
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true; // Indicate that the error was handled
+  };
+  FlutterError.onError = (errorDetails) {
+    FirebaseCrashlytics.instance.recordFlutterError(errorDetails);
+  };
 }
