@@ -1,4 +1,5 @@
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
+import 'package:evide_stop_announcer_app/core/services/websocket_services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 Future<dynamic> currentStopDataShowingDialog({
@@ -26,7 +27,7 @@ Future<dynamic> currentStopDataShowingDialog({
             backgroundColor: Colors.transparent,
             child: Container(
               width: MediaQuery.of(context).size.width,
-              padding: EdgeInsets.all(20.w),
+              padding: EdgeInsets.only(top: 20.h, left: 20.h, right: 20.h, bottom: 10.h),
               height: MediaQuery.of(context).size.height / 1.2,
               margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
               decoration: BoxDecoration(
@@ -129,11 +130,9 @@ Future<dynamic> currentStopDataShowingDialog({
   );
 
   // Automatically close after 5 seconds
-  Future.delayed(Duration(seconds: 5), () {
-    if (context.mounted) {
-      if (Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+  Future.delayed(const Duration(seconds: 5), () {
+    if (WebSocketServices.isDialogOpen) {
+      WebSocketServices.closeStopDialog();
     }
   });
 
