@@ -46,17 +46,11 @@ class _SplashScreenState extends State<SplashScreen> {
                   child: child,
                 );
               },
-              child: Container(
-                height: 100.h,
-                width: 100.w,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10.sp),
-                ),
-                child: ClipRRect(
-                  child: Image.asset(
-                    AppAssets.pngApplogo,
-                    fit: BoxFit.contain,
-                  ),
+              child: ClipRRect(
+                child: Image.asset(
+                  width: 80.w,
+                  AppAssets.pngApplogo,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),

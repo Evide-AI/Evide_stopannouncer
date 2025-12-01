@@ -20,12 +20,15 @@ List<Widget> splashScreenTopPartIntroWidgets() {
     AppConstraints.kHeight16,
     // Subtitle Text
     Text(
-      "Your travel companion",
+      "Always your travel companion",
       style: AppCommonStyles.commonTextStyle(
-        color: AppColors.kLightGrey,
+        color: AppColors.kBlack.withAlpha(100),
         fontSize: 10.sp,
         fontFamily: AppAssets.robotoSemiBoldFont,
         letterSpacing: 0.8,
+        shadows: [
+          Shadow(offset: Offset(1, 1), blurRadius: 4, color: AppColors.kAppPrimaryColor.withAlpha(60)),
+        ],
       ),
     ),
   ];

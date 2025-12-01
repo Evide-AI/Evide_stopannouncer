@@ -1,7 +1,8 @@
 import 'package:evide_stop_announcer_app/core/app_imports.dart';
 
 class AppColors{
-  static Color kAppPrimaryColor = Color(0xFF603189);
+  // primary color code = #017feb
+  static const Color kAppPrimaryColor = Color(0xFF017FEB);
   static Color kAppLightPrimaryColor = Color(0xFF904ECF);
   static Color kGrey1 = const Color.fromARGB(158, 210, 208, 208);
   static Color kGrey2 = const Color.fromARGB(255, 193, 193, 193);
