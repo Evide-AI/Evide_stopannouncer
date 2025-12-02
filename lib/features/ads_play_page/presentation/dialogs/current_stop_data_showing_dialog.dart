@@ -131,9 +131,7 @@ Future<dynamic> currentStopDataShowingDialog({
 
   // Automatically close after 5 seconds
   Future.delayed(const Duration(seconds: 5), () {
-    if (WebSocketServices.isDialogOpen) {
-      WebSocketServices.closeStopDialog();
-    }
+    Navigator.pop(context);
   });
 
   return dialogFuture;
