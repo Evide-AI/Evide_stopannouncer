@@ -255,56 +255,23 @@ void _skipToNextOnError() async {
       child: MultiBlocListener(
         listeners: [
           BlocListener<BusDataCubit, BusDataState>(listener: (context, state) async {
-            // if (state.status == BusDataStatus.loaded) {
-            //   // initialize video player with first video
-            //   final newList = state.localVideoPaths;
+            // initialize video player with first video
+              final newList = state.localVideoPaths;
 
-            //   // If list changed -> update & reinitialize
-            //   if (!AppCommonMethods.listEquals(_videoList, newList)) {
-            //     _videoList = List<String>.from(newList);  // defensive copy
+              // If list changed -> update & reinitialize
+              if (!AppCommonMethods.listEquals(_videoList, newList)) {
+                _videoList = List<String>.from(newList);  // defensive copy
 
-            //     if (_videoList.isNotEmpty) {
-            //       currentVideoIndex = 0;
-            //       await initializeVideo(index: currentVideoIndex);
-            //     }
-            //   }
-
-            //   // Start fetching remote updates only once
-            //   if (context.mounted) {
-            //     context.read<BusDataCubit>().getVideosAndAudiosToPlay();
-            //   }
-            // }
-            final newList = state.localVideoPaths;
-              final incoming = List<String>.from(newList);
-              final existing = _videoList;
-
-              // Compute diffs
-              final removedItems = _videoList.where((e) => !incoming.contains(e)).toList();
-              final addedItems = incoming.where((e) => !existing.contains(e)).toList();
-
-              if (removedItems.isNotEmpty || addedItems.isNotEmpty) {
-                // Schedule safe update to avoid concurrent modification
-                Future.microtask(() async {
-                  // Remove deleted files
-                  for (var item in removedItems) {
-                    _videoList.remove(item);
-                  }
-
-                  // Add new files
-                  _videoList.addAll(addedItems);
-
-                  // If currently playing video got removed → reinitialize
-                  if (removedItems.contains(_videoList[currentVideoIndex])) {
-                    currentVideoIndex = 0;
-                    await initializeVideo(index: currentVideoIndex);
-                  }
-                });
+                if (_videoList.isNotEmpty) {
+                  currentVideoIndex = 0;
+                  await initializeVideo(index: currentVideoIndex);
+                }
               }
 
-              // Fetch remote updates only once
+              // Start fetching remote updates only once
               if (context.mounted) {
                 context.read<BusDataCubit>().getVideosAndAudiosToPlay();
-              },
+              }
           },),
         ],
         child: BlocBuilder<BusDataCubit, BusDataState>(builder: (context, state) {
