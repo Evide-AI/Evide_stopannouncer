@@ -197,7 +197,7 @@ class WebSocketServices {
     // showing stop dialog
     currentStopDataShowingDialog(
       isCurrentStop: isCurrentStop,
-      context: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
+      showDialogContext: AppGlobalKeys.navigatorKey.currentState!.overlay!.context,
       stopName: stopName,
       stopNameInMalayalam: stopNameInMalayalam,
     );
