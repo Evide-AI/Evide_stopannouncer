@@ -8,5 +8,5 @@ class AppAssets {
   static const String robotoBoldFont = 'Roboto-Bold';
 
   // images
-  static const String pngApplogo = "assets/images/logo_text_blue_color.png";
+  static const String pngApplogo = "assets/images/logo_text_blue_color.jpg";
 }
